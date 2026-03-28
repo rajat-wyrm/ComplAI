@@ -1,21 +1,17 @@
 ﻿\"\"\"
-RAG (Retrieval-Augmented Generation) Engine
+RAG engine for retrieval augmented generation
 \"\"\"
 import logging
 from typing import List, Dict, Any
 from rag.vector_store import vector_store
-from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 class RAGEngine:
-    \"\"\"Handles retrieval and context building\"\"\"
-    
     def __init__(self):
         self.vector_store = vector_store
         
     def retrieve_context(self, query: str, top_k: int = None) -> List[Dict[str, Any]]:
-        \"\"\"Retrieve relevant context for query\"\"\"
         results = self.vector_store.search(query, top_k)
         
         context = []
@@ -30,30 +26,30 @@ class RAGEngine:
         return context
     
     def build_prompt(self, query: str, context: List[Dict[str, Any]]) -> str:
-        \"\"\"Build prompt with retrieved context\"\"\"
-        prompt = f"""You are an AI Compliance and Risk Analysis expert. Analyze the following document context and answer the query.
+        prompt = """You are an AI Compliance and Risk Analysis expert. Analyze the following document context and provide a comprehensive risk assessment.
 
 CONTEXT:
 """
-        for i, ctx in enumerate(context):
-            prompt += f"\n[{i+1}] {ctx['text'][:500]}...\n"
+        for i, ctx in enumerate(context[:5]):
+            prompt += f"\n[{i+1}] {ctx['text'][:800]}...\n"
         
         prompt += f"""
+
 QUERY: {query}
 
 INSTRUCTIONS:
-1. Analyze the context thoroughly
-2. Identify compliance risks and gaps
-3. Provide specific recommendations
-4. Include risk scores (0-100) where applicable
-5. Be concise but comprehensive
+1. Identify compliance risks and gaps
+2. Assign risk score (0-100)
+3. Provide confidence score (0-100)
+4. List specific risks with severity
+5. Provide actionable recommendations
 
-RESPONSE:
-"""
+Return response in JSON format with fields: risk_score, confidence_score, risks, explanation, recommended_actions, compliance_gaps
+
+RESPONSE:"""
         return prompt
     
     def get_document_context(self, document_id: str) -> List[str]:
-        \"\"\"Get all chunks for a specific document\"\"\"
         chunks = []
         for i, metadata in enumerate(self.vector_store.metadata):
             if metadata.get("document_id") == document_id:

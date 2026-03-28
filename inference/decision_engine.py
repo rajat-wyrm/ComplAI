@@ -1,10 +1,10 @@
 ﻿\"\"\"
-AI Decision Engine for risk assessment
+AI Decision Engine for risk assessment and actionable insights
 \"\"\"
 import logging
 import json
 from typing import List, Dict, Any, Optional
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import httpx
 from app.core.config import settings
 from app.core.exceptions import LLMError
@@ -13,8 +13,6 @@ from rag.rag_engine import rag_engine
 logger = logging.getLogger(__name__)
 
 class DecisionEngine:
-    \"\"\"Generate risk assessments and actionable decisions\"\"\"
-    
     def __init__(self):
         self.api_key = settings.DEEPSEEK_API_KEY
         self.model = settings.LLM_MODEL
@@ -22,43 +20,29 @@ class DecisionEngine:
         
     @retry(
         stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=10)
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type((httpx.TimeoutException, httpx.ConnectError))
     )
     async def analyze_document(self, document_id: str, document_text: str) -> Dict[str, Any]:
-        \"\"\"Analyze document for compliance risks\"\"\"
         try:
-            # Get relevant context from RAG
             context_chunks = rag_engine.get_document_context(document_id)
-            
-            # Build analysis prompt
             prompt = self._build_analysis_prompt(document_text, context_chunks)
-            
-            # Call LLM
             response = await self._call_llm(prompt)
-            
-            # Parse response
             analysis = self._parse_analysis_response(response)
-            
             return analysis
-            
         except Exception as e:
             logger.error(f"Document analysis failed: {e}")
             raise LLMError(f"Analysis failed: {str(e)}")
     
     @retry(
         stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=10)
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type((httpx.TimeoutException, httpx.ConnectError))
     )
     async def chat_query(self, query: str, document_id: str) -> Dict[str, Any]:
-        \"\"\"Handle chat queries about documents\"\"\"
         try:
-            # Retrieve relevant context
             context = rag_engine.retrieve_context(query)
-            
-            # Build chat prompt
             prompt = self._build_chat_prompt(query, context)
-            
-            # Call LLM
             response = await self._call_llm(prompt)
             
             return {
@@ -66,22 +50,20 @@ class DecisionEngine:
                 "context_used": [ctx["text"][:200] for ctx in context[:3]],
                 "confidence": self._calculate_confidence(context)
             }
-            
         except Exception as e:
             logger.error(f"Chat query failed: {e}")
             raise LLMError(f"Chat failed: {str(e)}")
     
     def _build_analysis_prompt(self, text: str, context: List[str]) -> str:
-        \"\"\"Build analysis prompt for document\"\"\"
         prompt = f"""You are an expert AI Compliance and Risk Analyst. Analyze this document and provide a comprehensive risk assessment.
 
 DOCUMENT TEXT:
-{text[:3000]}
+{text[:4000]}
 
 RELEVANT CONTEXT:
 {chr(10).join(context[:5])}
 
-Provide analysis in the following JSON format:
+Provide analysis in JSON format with these exact fields:
 {{
     "risk_score": <number 0-100>,
     "confidence_score": <number 0-100>,
@@ -94,24 +76,17 @@ Provide analysis in the following JSON format:
         }}
     ],
     "explanation": "detailed explanation of findings",
-    "recommended_actions": [
-        "action 1",
-        "action 2"
-    ],
-    "compliance_gaps": [
-        "gap 1",
-        "gap 2"
-    ]
+    "recommended_actions": ["action 1", "action 2"],
+    "compliance_gaps": ["gap 1", "gap 2"]
 }}
 
-Return ONLY valid JSON, no other text."""
+Return ONLY valid JSON."""
         return prompt
     
     def _build_chat_prompt(self, query: str, context: List[Dict]) -> str:
-        \"\"\"Build prompt for chat\"\"\"
         context_text = ""
-        for i, ctx in enumerate(context):
-            context_text += f"\nDocument Chunk {i+1}: {ctx['text'][:500]}...\n"
+        for i, ctx in enumerate(context[:3]):
+            context_text += f"\nDocument Chunk {i+1}: {ctx['text'][:600]}...\n"
         
         prompt = f"""You are an AI Compliance Assistant. Answer questions based on the document context.
 
@@ -126,8 +101,8 @@ ANSWER:"""
         return prompt
     
     async def _call_llm(self, prompt: str) -> str:
-        \"\"\"Call DeepSeek API\"\"\"
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        timeout = httpx.Timeout(30.0, connect=10.0)
+        async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.post(
                 f"{self.base_url}/chat/completions",
                 headers={
@@ -137,7 +112,7 @@ ANSWER:"""
                 json={
                     "model": self.model,
                     "messages": [
-                        {"role": "system", "content": "You are an AI Compliance and Risk Analysis expert."},
+                        {"role": "system", "content": "You are an AI Compliance and Risk Analysis expert. Return valid JSON when requested."},
                         {"role": "user", "content": prompt}
                     ],
                     "temperature": settings.TEMPERATURE,
@@ -153,22 +128,19 @@ ANSWER:"""
             return result["choices"][0]["message"]["content"]
     
     def _parse_analysis_response(self, response: str) -> Dict[str, Any]:
-        \"\"\"Parse LLM response into structured format\"\"\"
         try:
-            # Try to parse JSON
             json_start = response.find("{")
             json_end = response.rfind("}") + 1
             if json_start >= 0 and json_end > json_start:
                 json_str = response[json_start:json_end]
                 return json.loads(json_str)
             else:
-                # Fallback to default structure
                 return {
                     "risk_score": 50,
                     "confidence_score": 70,
-                    "risks": [{"category": "General", "description": "Analysis completed"}],
+                    "risks": [{"category": "General", "description": "Analysis completed", "severity": "medium", "impact": "Further review needed"}],
                     "explanation": response[:500],
-                    "recommended_actions": ["Review document thoroughly"],
+                    "recommended_actions": ["Review document thoroughly", "Conduct compliance audit"],
                     "compliance_gaps": ["Further analysis recommended"]
                 }
         except Exception as e:
@@ -183,10 +155,8 @@ ANSWER:"""
             }
     
     def _calculate_confidence(self, context: List[Dict]) -> float:
-        \"\"\"Calculate confidence score based on retrieved context\"\"\"
         if not context:
             return 0.0
-        
         avg_score = sum(ctx["score"] for ctx in context) / len(context)
         return min(100.0, avg_score * 100)
 
