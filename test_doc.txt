@@ -1,4 +1,4 @@
-﻿COMPLIANCE RISK ASSESSMENT DOCUMENT
+﻿COMPLIANCE RISK ASSESSMENT
 
 Section 1: Data Protection
 The company collects personal data including names, emails, and payment information.
