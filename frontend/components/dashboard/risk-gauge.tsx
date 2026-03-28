@@ -11,9 +11,22 @@ interface RiskGaugeProps {
   subtitle?: string;
 }
 
-export function RiskGauge({ value, size = 260, title = "Global Risk Score", subtitle }: RiskGaugeProps) {
+export function RiskGauge({ value, size = 200, title = "Global Risk Score", subtitle }: RiskGaugeProps) {
   const [animatedValue, setAnimatedValue] = useState(0);
-  const radius = size * 0.38;
+  const [windowWidth, setWindowWidth] = useState(200);
+  
+  useEffect(() => {
+    const updateSize = () => {
+      if (window.innerWidth < 640) setWindowWidth(160);
+      else if (window.innerWidth < 768) setWindowWidth(180);
+      else setWindowWidth(size);
+    };
+    updateSize();
+    window.addEventListener("resize", updateSize);
+    return () => window.removeEventListener("resize", updateSize);
+  }, [size]);
+  
+  const radius = windowWidth * 0.38;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference * (1 - animatedValue / 100);
   
@@ -31,20 +44,20 @@ export function RiskGauge({ value, size = 260, title = "Global Risk Score", subt
   }, [value]);
   
   return (
-    <GlassCard className="p-6 text-center group" premium glow>
+    <GlassCard className="p-3 sm:p-4 md:p-6 text-center group" premium glow>
       <div className="relative">
-        <h3 className="text-sm font-medium text-white/60 mb-2">{title}</h3>
-        {subtitle && <p className="text-xs text-white/40 mb-4">{subtitle}</p>}
+        <h3 className="text-xs sm:text-sm font-medium text-white/60 mb-1 sm:mb-2">{title}</h3>
+        {subtitle && <p className="text-[9px] sm:text-xs text-white/40 mb-2 sm:mb-4">{subtitle}</p>}
         
-        <div className="relative flex justify-center py-4">
-          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <div className="relative flex justify-center py-2 sm:py-3">
+          <svg width={windowWidth} height={windowWidth} viewBox={`0 0 ${windowWidth} ${windowWidth}`}>
             <defs>
               <linearGradient id="riskGaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor={gradientColors[0]} />
                 <stop offset="100%" stopColor={gradientColors[1]} />
               </linearGradient>
               <filter id="glow">
-                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
                 <feMerge>
                   <feMergeNode in="coloredBlur"/>
                   <feMergeNode in="SourceGraphic"/>
@@ -53,52 +66,52 @@ export function RiskGauge({ value, size = 260, title = "Global Risk Score", subt
             </defs>
             
             <circle
-              cx={size / 2}
-              cy={size / 2}
+              cx={windowWidth / 2}
+              cy={windowWidth / 2}
               r={radius}
               fill="none"
               stroke="rgba(255,255,255,0.08)"
-              strokeWidth={size * 0.08}
+              strokeWidth={windowWidth * 0.08}
             />
             
             <motion.circle
-              cx={size / 2}
-              cy={size / 2}
+              cx={windowWidth / 2}
+              cy={windowWidth / 2}
               r={radius}
               fill="none"
               stroke="url(#riskGaugeGradient)"
-              strokeWidth={size * 0.08}
+              strokeWidth={windowWidth * 0.08}
               strokeLinecap="round"
               strokeDasharray={circumference}
               initial={{ strokeDashoffset: circumference }}
               animate={{ strokeDashoffset }}
               transition={{ duration: 2, ease: "easeOut" }}
               style={{
-                transformOrigin: `${size / 2}px ${size / 2}px`,
+                transformOrigin: `${windowWidth / 2}px ${windowWidth / 2}px`,
                 transform: "rotate(-90deg)",
                 filter: "url(#glow)",
               }}
             />
             
             <text
-              x={size / 2}
-              y={size / 2}
+              x={windowWidth / 2}
+              y={windowWidth / 2}
               textAnchor="middle"
               dominantBaseline="middle"
-              className="text-5xl font-bold fill-white"
+              className="fill-white text-2xl sm:text-3xl md:text-4xl font-bold"
             >
               {animatedValue}
-              <tspan fontSize="24" className="fill-white/50">%</tspan>
+              <tspan fontSize={windowWidth * 0.1} className="fill-white/50">%</tspan>
             </text>
           </svg>
           
           <motion.div
-            className="absolute inset-0 rounded-full blur-2xl opacity-40 group-hover:opacity-70 transition-opacity"
+            className="absolute inset-0 rounded-full blur-xl opacity-40 group-hover:opacity-70 transition-opacity"
             style={{
               background: `radial-gradient(circle, ${gradientColors[0]} 0%, transparent 70%)`,
             }}
             animate={{
-              scale: [1, 1.1, 1],
+              scale: [1, 1.05, 1],
             }}
             transition={{
               duration: 2,
@@ -108,12 +121,12 @@ export function RiskGauge({ value, size = 260, title = "Global Risk Score", subt
           />
         </div>
         
-        <div className="flex justify-between mt-2 text-xs text-white/40">
+        <div className="flex justify-between mt-1 sm:mt-2 text-[8px] sm:text-xs text-white/40">
           <span>Low Risk</span>
           <span>Medium</span>
           <span>High Risk</span>
         </div>
-        <div className="h-1 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-full mt-3" />
+        <div className="h-0.5 sm:h-1 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-full mt-2 sm:mt-3" />
       </div>
     </GlassCard>
   );

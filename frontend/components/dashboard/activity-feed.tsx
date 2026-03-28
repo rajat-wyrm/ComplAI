@@ -20,38 +20,38 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
   const getIcon = (type: string) => {
     switch (type) {
       case "upload":
-        return <FileText className="h-4 w-4 text-blue-400" />;
+        return <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-blue-400" />;
       case "analysis":
-        return <Clock className="h-4 w-4 text-purple-400" />;
+        return <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-purple-400" />;
       case "risk":
-        return <AlertTriangle className="h-4 w-4 text-yellow-400" />;
+        return <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-400" />;
       case "complete":
-        return <CheckCircle2 className="h-4 w-4 text-green-400" />;
+        return <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-green-400" />;
       default:
-        return <Clock className="h-4 w-4 text-white/40" />;
+        return <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-white/40" />;
     }
   };
 
   return (
-    <GlassCard className="p-6 h-full">
-      <h3 className="text-sm font-medium text-white/60 mb-4">Recent Activity</h3>
-      <div className="space-y-4">
+    <GlassCard className="p-4 sm:p-6 h-full" premium>
+      <h3 className="text-xs sm:text-sm font-medium text-white/60 mb-3 sm:mb-4">Recent Activity</h3>
+      <div className="space-y-2 sm:space-y-3 max-h-[300px] sm:max-h-[400px] overflow-y-auto pr-1">
         {activities.map((activity, index) => (
           <motion.div
             key={activity.id}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="flex items-start gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all"
+            transition={{ delay: index * 0.05 }}
+            className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all"
           >
-            <div className="p-2 rounded-lg bg-white/10">
+            <div className="p-1 sm:p-1.5 rounded-lg bg-white/10">
               {getIcon(activity.type)}
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium">{activity.title}</p>
-              <p className="text-xs text-white/40 mt-1">{activity.description}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium truncate">{activity.title}</p>
+              <p className="text-[10px] sm:text-xs text-white/40 mt-0.5 truncate">{activity.description}</p>
             </div>
-            <p className="text-xs text-white/30">{activity.time}</p>
+            <p className="text-[9px] sm:text-xs text-white/30 whitespace-nowrap ml-1">{activity.time}</p>
           </motion.div>
         ))}
       </div>

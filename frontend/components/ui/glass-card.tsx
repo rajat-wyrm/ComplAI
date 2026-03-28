@@ -19,15 +19,18 @@ export const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        whileHover={animated ? { y: -4, transition: { duration: 0.2 } } : undefined}
+        whileHover={animated ? { y: -2, transition: { duration: 0.2 } } : undefined}
         className={cn(
           premium ? "glass-card-premium" : "glass-ultra",
           glow && "hover:glow-purple-hover",
           gradient && "border-gradient-animated",
+          "transition-all duration-300",
           className
         )}
         {...props}
-      />
+      >
+        {children}
+      </motion.div>
     );
   }
 );
