@@ -1,5 +1,5 @@
 ﻿"""
-History endpoint
+Document history endpoint
 """
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
@@ -12,12 +12,13 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 @router.get("")
-async def get_document_history(
+async def get_history(
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     status: Optional[str] = None,
     days: Optional[int] = None
 ):
+    """Get document history"""
     try:
         db = get_db()
         
@@ -25,8 +26,8 @@ async def get_document_history(
         if status:
             query["status"] = status
         if days:
-            cutoff_date = datetime.utcnow() - timedelta(days=days)
-            query["upload_date"] = {"$gte": cutoff_date}
+            cutoff = datetime.utcnow() - timedelta(days=days)
+            query["upload_date"] = {"$gte": cutoff}
         
         total = await db.documents.count_documents(query)
         
@@ -40,8 +41,7 @@ async def get_document_history(
                 "file_size": doc["file_size"],
                 "upload_date": doc["upload_date"].isoformat(),
                 "status": doc["status"],
-                "risk_score": doc.get("risk_score"),
-                "confidence_score": doc.get("confidence_score")
+                "risk_score": doc.get("risk_score")
             })
         
         return {
@@ -53,5 +53,5 @@ async def get_document_history(
         }
         
     except Exception as e:
-        logger.exception(f"Failed to get document history: {e}")
+        logger.exception(f"History error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
