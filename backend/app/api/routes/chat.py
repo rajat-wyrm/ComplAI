@@ -2,29 +2,16 @@
 Chat endpoint for conversational AI
 """
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import Optional, List
 import uuid
 from datetime import datetime
 import logging
 
 from app.services.decision_engine import decision_engine
 from app.core.database import get_db
+from app.models import ChatRequest, ChatResponse
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-class ChatRequest(BaseModel):
-    document_id: str
-    message: str
-    session_id: Optional[str] = None
-
-class ChatResponse(BaseModel):
-    session_id: str
-    response: str
-    context_used: List[str]
-    confidence: float
-    timestamp: datetime
 
 @router.post("", response_model=ChatResponse)
 async def chat(request: ChatRequest):

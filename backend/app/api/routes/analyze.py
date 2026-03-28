@@ -2,20 +2,16 @@
 Document analysis endpoint
 """
 from fastapi import APIRouter, HTTPException, BackgroundTasks
-from pydantic import BaseModel
 import uuid
 from datetime import datetime
 import logging
 
 from app.services.decision_engine import decision_engine
 from app.core.database import get_db
-from app.models import AnalysisResponse
+from app.models import AnalyzeRequest, AnalysisResponse
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-class AnalyzeRequest(BaseModel):
-    document_id: str
 
 @router.post("", response_model=AnalysisResponse)
 async def analyze_document(request: AnalyzeRequest, background_tasks: BackgroundTasks):

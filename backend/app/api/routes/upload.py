@@ -49,8 +49,10 @@ async def upload_file(file: UploadFile = File(...)):
         return UploadResponse(
             document_id=doc_id,
             filename=file.filename,
+            file_size=len(content),
+            chunks=len(chunks),
             status="uploaded",
-            chunks=len(chunks)
+            message="Document uploaded successfully"
         )
         
     except ValueError as e:

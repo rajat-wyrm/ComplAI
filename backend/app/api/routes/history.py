@@ -7,11 +7,12 @@ from datetime import datetime, timedelta
 import logging
 
 from app.core.database import get_db
+from app.models import DocumentHistoryResponse, DocumentHistoryItem
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-@router.get("")
+@router.get("", response_model=DocumentHistoryResponse)
 async def get_history(
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -35,22 +36,22 @@ async def get_history(
         
         documents = []
         async for doc in cursor:
-            documents.append({
-                "document_id": doc["document_id"],
-                "filename": doc["filename"],
-                "file_size": doc["file_size"],
-                "upload_date": doc["upload_date"].isoformat(),
-                "status": doc["status"],
-                "risk_score": doc.get("risk_score")
-            })
+            documents.append(DocumentHistoryItem(
+                document_id=doc["document_id"],
+                filename=doc["filename"],
+                file_size=doc["file_size"],
+                upload_date=doc["upload_date"].isoformat(),
+                status=doc["status"],
+                risk_score=doc.get("risk_score")
+            ))
         
-        return {
-            "documents": documents,
-            "total": total,
-            "limit": limit,
-            "offset": offset,
-            "has_more": offset + limit < total
-        }
+        return DocumentHistoryResponse(
+            documents=documents,
+            total=total,
+            limit=limit,
+            offset=offset,
+            has_more=offset + limit < total
+        )
         
     except Exception as e:
         logger.exception(f"History error: {e}")
