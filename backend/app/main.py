@@ -1,30 +1,25 @@
-﻿\"\"\"
+﻿"""
 AI Compliance & Risk Copilot - Main Application Entry Point
-\"\"\"
+"""
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import logging
 import sys
-import os
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 
 from app.core.config import settings
-from app.core.logging import setup_logging
 from app.api.routes import health, upload, analyze, insights, chat, history
 from app.core.exceptions import ComplianceException
-from rag.vector_store import init_vector_store
 
-setup_logging()
 logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    \"\"\"Lifespan context manager for startup/shutdown events\"\"\"
+    """Lifespan context manager for startup/shutdown events"""
     logger.info("Starting AI Compliance & Risk Copilot...")
     
     try:
@@ -42,6 +37,7 @@ async def lifespan(app: FastAPI):
         logger.warning(f"Redis initialization skipped: {e}")
     
     try:
+        from rag.vector_store import init_vector_store
         await init_vector_store()
         logger.info("Vector store initialized")
     except Exception as e:
@@ -78,11 +74,6 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-)
-
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=settings.ALLOWED_HOSTS,
 )
 
 @app.exception_handler(ComplianceException)

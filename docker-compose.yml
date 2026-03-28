@@ -1,0 +1,99 @@
+﻿version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: compliance-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: \
+      MONGO_INITDB_ROOT_PASSWORD: \
+      MONGO_INITDB_DATABASE: compliance_db
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - compliance-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: compliance-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - compliance-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: compliance-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URL=mongodb://\:\@mongodb:27017
+      - REDIS_URL=redis://redis:6379
+      - DEEPSEEK_API_KEY=\
+      - ENVIRONMENT=\
+      - SECRET_KEY=\
+      - MONGO_DB_NAME=compliance_db
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - compliance-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.celery
+    container_name: compliance-celery-worker
+    restart: unless-stopped
+    environment:
+      - MONGODB_URL=mongodb://\:\@mongodb:27017
+      - REDIS_URL=redis://redis:6379
+      - DEEPSEEK_API_KEY=\
+      - ENVIRONMENT=\
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - compliance-network
+
+networks:
+  compliance-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  redis_data:
