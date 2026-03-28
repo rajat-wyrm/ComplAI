@@ -1,6 +1,6 @@
-﻿\"\"\"
+﻿"""
 AI Compliance & Risk Copilot - Main Application Entry Point
-\"\"\"
+"""
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -10,7 +10,8 @@ import logging
 import sys
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from app.core.config import settings
 from app.core.logging import setup_logging
@@ -130,3 +131,4 @@ if __name__ == "__main__":
         port=8000,
         reload=settings.ENVIRONMENT == "development"
     )
+

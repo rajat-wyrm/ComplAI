@@ -1,12 +1,12 @@
-﻿\"\"\"
+"""
 Database models for compliance system
-\"\"\"
+"""
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 class Document(BaseModel):
-    \"\"\"Document model\"\"\"
+    """Document model"""
     document_id: str
     filename: str
     file_path: str
@@ -20,7 +20,7 @@ class Document(BaseModel):
     confidence_score: Optional[float] = None
 
 class AnalysisResult(BaseModel):
-    \"\"\"Analysis result model\"\"\"
+    """Analysis result model"""
     analysis_id: str
     document_id: str
     risk_score: float = Field(..., ge=0, le=100)
@@ -32,7 +32,7 @@ class AnalysisResult(BaseModel):
     status: str  # completed, processing, failed
 
 class ChatMessage(BaseModel):
-    \"\"\"Chat message model\"\"\"
+    """Chat message model"""
     session_id: str
     message: str
     response: str

@@ -1,6 +1,6 @@
-﻿\"\"\"
+"""
 FAISS vector store for document embeddings
-\"\"\"
+"""
 import numpy as np
 import faiss
 import pickle

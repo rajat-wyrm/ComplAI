@@ -1,6 +1,6 @@
-﻿\"\"\"
+﻿"""
 Insights endpoint
-\"\"\"
+"""
 from fastapi import APIRouter, HTTPException, Query
 from datetime import datetime, timedelta
 import logging
@@ -60,13 +60,13 @@ async def get_dashboard_summary(days: int = Query(30, ge=1, le=365)):
         db = get_db()
         cutoff_date = datetime.utcnow() - timedelta(days=days)
         
-        total_documents = await db.documents.count_documents({"upload_date": {"": cutoff_date}})
+        total_documents = await db.documents.count_documents({"upload_date": {"$gte": cutoff_date}})
         analyzed_documents = await db.documents.count_documents({
             "status": "analyzed",
-            "upload_date": {"": cutoff_date}
+            "upload_date": {"$gte": cutoff_date}
         })
         
-        analyses = await db.analyses.find({"created_at": {"": cutoff_date}}).to_list(length=1000)
+        analyses = await db.analyses.find({"created_at": {"$gte": cutoff_date}}).to_list(length=1000)
         
         risk_scores = [a.get("risk_score", 0) for a in analyses if a.get("risk_score")]
         avg_risk = sum(risk_scores) / len(risk_scores) if risk_scores else 0

@@ -1,11 +1,15 @@
-﻿\"\"\"
+﻿"""
 Document analysis endpoint
-\"\"\"
+"""
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 import uuid
 from datetime import datetime
 import logging
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
 
 from app.core.database import get_db
 from app.core.cache import set_cache
@@ -29,7 +33,7 @@ async def analyze_document(request: AnalyzeRequest, background_tasks: Background
         
         await db.documents.update_one(
             {"document_id": request.document_id},
-            {"": {"status": "processing"}}
+            {"$set": {"status": "processing"}}
         )
         
         analysis_id = str(uuid.uuid4())
@@ -63,7 +67,7 @@ async def analyze_document(request: AnalyzeRequest, background_tasks: Background
                 
                 await db.documents.update_one(
                     {"document_id": request.document_id},
-                    {"": {
+                    {"$set": {
                         "status": "analyzed",
                         "analysis_id": analysis_id,
                         "risk_score": analysis.get("risk_score"),
@@ -78,7 +82,7 @@ async def analyze_document(request: AnalyzeRequest, background_tasks: Background
                 logger.error(f"Background analysis failed: {e}")
                 await db.documents.update_one(
                     {"document_id": request.document_id},
-                    {"": {"status": "failed"}}
+                    {"$set": {"status": "failed"}}
                 )
         
         background_tasks.add_task(process_analysis)

@@ -1,6 +1,6 @@
-﻿\"\"\"
+﻿"""
 Document processing pipeline for PDF, DOCX, and text files
-\"\"\"
+"""
 import os
 import logging
 from typing import List, Dict, Any
@@ -9,8 +9,24 @@ import aiofiles
 import PyPDF2
 import pdfplumber
 from docx import Document
-from app.core.config import settings
-from app.core.exceptions import DocumentProcessingError
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+try:
+    from app.core.config import settings
+    from app.core.exceptions import DocumentProcessingError
+except ImportError:
+    # Fallback for direct import
+    class DocumentProcessingError(Exception):
+        pass
+    class Settings:
+        MAX_FILE_SIZE = 10485760
+        CHUNK_SIZE = 1000
+        CHUNK_OVERLAP = 200
+        UPLOAD_DIR = "data/uploads"
+    settings = Settings()
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +42,13 @@ class DocumentProcessor:
         if ext not in self.ALLOWED_EXTENSIONS:
             raise DocumentProcessingError(
                 f"Unsupported file type: {ext}",
-                details={"allowed": list(self.ALLOWED_EXTENSIONS)}
+                {"allowed": list(self.ALLOWED_EXTENSIONS)}
             )
         
         if file_size > settings.MAX_FILE_SIZE:
             raise DocumentProcessingError(
                 f"File too large: {file_size} bytes",
-                details={"max_size": settings.MAX_FILE_SIZE}
+                {"max_size": settings.MAX_FILE_SIZE}
             )
         
         return True

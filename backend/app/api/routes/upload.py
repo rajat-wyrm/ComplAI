@@ -1,11 +1,15 @@
-﻿\"\"\"
+﻿"""
 File upload endpoint
-\"\"\"
-from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
+"""
+from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 import uuid
 from datetime import datetime
 import logging
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
 
 from processing.document_processor import processor
 from app.core.database import get_db
@@ -16,7 +20,7 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 @router.post("")
-async def upload_file(file: UploadFile = File(...), background_tasks: BackgroundTasks = None):
+async def upload_file(file: UploadFile = File(...)):
     try:
         content = await file.read()
         processor.validate_file(file.filename, len(content))

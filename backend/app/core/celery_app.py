@@ -1,6 +1,6 @@
-﻿\"\"\"
+"""
 Celery configuration for async tasks
-\"\"\"
+"""
 from celery import Celery
 from app.core.config import settings
 

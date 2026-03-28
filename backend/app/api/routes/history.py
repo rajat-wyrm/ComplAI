@@ -1,6 +1,6 @@
-﻿\"\"\"
+﻿"""
 History endpoint
-\"\"\"
+"""
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
 from datetime import datetime, timedelta
@@ -26,7 +26,7 @@ async def get_document_history(
             query["status"] = status
         if days:
             cutoff_date = datetime.utcnow() - timedelta(days=days)
-            query["upload_date"] = {"": cutoff_date}
+            query["upload_date"] = {"$gte": cutoff_date}
         
         total = await db.documents.count_documents(query)
         

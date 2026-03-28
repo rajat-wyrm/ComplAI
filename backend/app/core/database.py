@@ -1,6 +1,6 @@
-﻿\"\"\"
+﻿"""
 Database connection management with MongoDB
-\"\"\"
+"""
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.core.config import settings
 import logging

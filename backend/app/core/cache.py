@@ -1,6 +1,6 @@
-﻿\"\"\"
+﻿"""
 Redis cache management
-\"\"\"
+"""
 import redis.asyncio as redis
 from app.core.config import settings
 import json

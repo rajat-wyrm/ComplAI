@@ -1,6 +1,6 @@
-﻿\"\"\"
+"""
 RAG engine for retrieval augmented generation
-\"\"\"
+"""
 import logging
 from typing import List, Dict, Any
 from rag.vector_store import vector_store

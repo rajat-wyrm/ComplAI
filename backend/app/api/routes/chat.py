@@ -1,6 +1,6 @@
-﻿\"\"\"
+﻿"""
 Chat endpoint for conversational AI
-\"\"\"
+"""
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
