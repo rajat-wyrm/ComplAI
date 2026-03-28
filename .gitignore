@@ -7,6 +7,8 @@ __pycache__/
 env/
 venv/
 .env
+.env.*
+!.env.example
 .venv
 *.egg-info/
 dist/
@@ -45,3 +47,10 @@ data/processed/*
 # Secrets
 *.pem
 *.key
+*.env
+*.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
