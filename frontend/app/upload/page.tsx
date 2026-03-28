@@ -4,11 +4,11 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useDropzone } from "react-dropzone";
-import { Upload, FileText, X, Loader2 } from "lucide-react";
+import { Upload, FileText, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { uploadDocument, analyzeDocument } from "@/lib/api";
 
 export default function UploadPage() {
