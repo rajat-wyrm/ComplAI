@@ -1,5 +1,5 @@
 ﻿\"\"\"
-Chat endpoint for conversational AI over documents
+Chat endpoint for conversational AI
 \"\"\"
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -11,7 +11,6 @@ import logging
 from app.core.database import get_db
 from app.core.cache import set_cache, get_cache
 from inference.decision_engine import decision_engine
-from rag.vector_store import vector_store
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -30,33 +29,26 @@ class ChatResponse(BaseModel):
 
 @router.post("")
 async def chat(request: ChatRequest):
-    \"\"\"Chat with a document\"\"\"
     try:
-        # Check if document exists
         db = get_db()
         document = await db.documents.find_one({"document_id": request.document_id})
         
         if not document:
             raise HTTPException(status_code=404, detail="Document not found")
         
-        # Generate or use session ID
         session_id = request.session_id or str(uuid.uuid4())
         
-        # Check cache for similar query
         cache_key = f"chat:{session_id}:{hash(request.message)}"
         cached_response = await get_cache(cache_key)
         
         if cached_response:
-            logger.info(f"Returning cached response for {session_id}")
             return ChatResponse(**cached_response)
         
-        # Get chat response from decision engine
         result = await decision_engine.chat_query(
             query=request.message,
             document_id=request.document_id
         )
         
-        # Save chat history
         chat_message = {
             "session_id": session_id,
             "document_id": request.document_id,
@@ -69,7 +61,6 @@ async def chat(request: ChatRequest):
         
         await db.chat_history.insert_one(chat_message)
         
-        # Cache response
         response_data = {
             "session_id": session_id,
             "response": result["response"],
@@ -77,9 +68,7 @@ async def chat(request: ChatRequest):
             "confidence": result["confidence"],
             "timestamp": datetime.utcnow()
         }
-        await set_cache(cache_key, response_data, ttl=300)  # Cache for 5 minutes
-        
-        logger.info(f"Chat response generated for session {session_id}")
+        await set_cache(cache_key, response_data, ttl=300)
         
         return ChatResponse(**response_data)
         
@@ -91,12 +80,9 @@ async def chat(request: ChatRequest):
 
 @router.get("/history/{session_id}")
 async def get_chat_history(session_id: str, limit: int = 50):
-    \"\"\"Get chat history for a session\"\"\"
     try:
         db = get_db()
-        cursor = db.chat_history.find(
-            {"session_id": session_id}
-        ).sort("timestamp", -1).limit(limit)
+        cursor = db.chat_history.find({"session_id": session_id}).sort("timestamp", -1).limit(limit)
         
         history = []
         async for msg in cursor:
@@ -109,7 +95,7 @@ async def get_chat_history(session_id: str, limit: int = 50):
         
         return {
             "session_id": session_id,
-            "history": list(reversed(history)),  # Oldest first
+            "history": list(reversed(history)),
             "total": len(history)
         }
         

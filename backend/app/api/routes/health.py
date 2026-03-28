@@ -1,7 +1,7 @@
 ﻿\"\"\"
-Health check endpoints
+Health check endpoint
 \"\"\"
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from datetime import datetime
 import logging
 
@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 @router.get("")
 async def health_check():
-    \"\"\"Health check endpoint\"\"\"
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
@@ -20,15 +19,13 @@ async def health_check():
 
 @router.get("/detailed")
 async def detailed_health_check():
-    \"\"\"Detailed health check with component status\"\"\"
-    health_status = {
+    return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
         "components": {
             "api": {"status": "up", "message": "API is operational"},
-            "database": {"status": "pending", "message": "Not initialized yet"},
-            "redis": {"status": "pending", "message": "Not initialized yet"},
-            "vector_store": {"status": "pending", "message": "Not initialized yet"}
+            "database": {"status": "pending", "message": "Requires MongoDB"},
+            "redis": {"status": "pending", "message": "Requires Redis"},
+            "vector_store": {"status": "pending", "message": "Initialized on first upload"}
         }
     }
-    return health_status
