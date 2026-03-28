@@ -17,6 +17,7 @@ from app.core.config import settings
 from app.core.logging import setup_logging
 from app.api.routes import health, upload, analyze, insights, chat, history
 from app.core.exceptions import ComplianceException
+from rag.vector_store import init_vector_store
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -39,6 +40,12 @@ async def lifespan(app: FastAPI):
         logger.info("Redis initialized")
     except Exception as e:
         logger.warning(f"Redis initialization skipped: {e}")
+    
+    try:
+        await init_vector_store()
+        logger.info("Vector store initialized")
+    except Exception as e:
+        logger.warning(f"Vector store initialization skipped: {e}")
     
     logger.info("Application startup complete")
     yield
