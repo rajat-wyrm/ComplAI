@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 redis_client = None
 
 async def init_redis():
-    \"\"\"Initialize Redis connection\"\"\"
     global redis_client
     try:
         redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
@@ -23,13 +22,11 @@ async def init_redis():
         raise
 
 async def close_redis():
-    \"\"\"Close Redis connection\"\"\"
     if redis_client:
         await redis_client.close()
         logger.info("Redis connection closed")
 
 async def get_cache(key: str):
-    \"\"\"Get value from cache\"\"\"
     if redis_client:
         value = await redis_client.get(key)
         if value:
@@ -37,11 +34,15 @@ async def get_cache(key: str):
     return None
 
 async def set_cache(key: str, value: dict, ttl: int = 3600):
-    \"\"\"Set value in cache with TTL\"\"\"
     if redis_client:
         await redis_client.setex(key, ttl, json.dumps(value))
 
 async def delete_cache(key: str):
-    \"\"\"Delete key from cache\"\"\"
     if redis_client:
         await redis_client.delete(key)
+
+async def invalidate_pattern(pattern: str):
+    if redis_client:
+        keys = await redis_client.keys(pattern)
+        if keys:
+            await redis_client.delete(*keys)

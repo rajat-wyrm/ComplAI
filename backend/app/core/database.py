@@ -1,5 +1,5 @@
 ﻿\"\"\"
-Database connection management
+Database connection management with MongoDB
 \"\"\"
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.core.config import settings
@@ -14,7 +14,6 @@ class Database:
 db = Database()
 
 async def init_db():
-    \"\"\"Initialize database connection\"\"\"
     try:
         db.client = AsyncIOMotorClient(settings.MONGODB_URL)
         db.db = db.client[settings.MONGO_DB_NAME]
@@ -23,8 +22,11 @@ async def init_db():
         logger.info(f"Connected to MongoDB: {settings.MONGODB_URL}")
         
         await db.db.documents.create_index("document_id", unique=True)
+        await db.db.documents.create_index("upload_date")
         await db.db.analyses.create_index("document_id")
+        await db.db.analyses.create_index("created_at")
         await db.db.chat_history.create_index("session_id")
+        await db.db.chat_history.create_index("document_id")
         
         return db.db
     except Exception as e:
@@ -32,11 +34,9 @@ async def init_db():
         raise
 
 async def close_db():
-    \"\"\"Close database connection\"\"\"
     if db.client:
         db.client.close()
         logger.info("MongoDB connection closed")
 
 def get_db():
-    \"\"\"Get database instance\"\"\"
     return db.db

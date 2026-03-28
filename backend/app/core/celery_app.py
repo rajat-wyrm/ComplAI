@@ -6,8 +6,8 @@ from app.core.config import settings
 
 celery_app = Celery(
     "compliance_tasks",
-    broker=settings.CELERY_BROKER_URL,
-    backend=settings.CELERY_RESULT_BACKEND
+    broker=settings.REDIS_URL,
+    backend=settings.REDIS_URL
 )
 
 celery_app.conf.update(
@@ -21,6 +21,7 @@ celery_app.conf.update(
     task_soft_time_limit=25 * 60,
     worker_prefetch_multiplier=1,
     task_acks_late=True,
+    task_reject_on_worker_lost=True,
 )
 
 celery_app.autodiscover_tasks(["app.services"])
