@@ -1,29 +1,40 @@
 ﻿"use client";
 
 import { motion } from "framer-motion";
-import { FileText, Shield, AlertTriangle, CheckCircle2, TrendingUp, Activity, Zap } from "lucide-react";
+import { 
+  Shield, CheckCircle2, AlertTriangle, TrendingUp, 
+  Activity, Zap, FileText, Clock, BarChart3, 
+  PieChart, Bell, Sparkles, Target, Gauge 
+} from "lucide-react";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { RiskGauge } from "@/components/dashboard/risk-gauge";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
-import { RiskTrendChart, ComplianceBarChart, RiskDistribution } from "@/components/charts/premium-charts";
+import { GlassCard } from "@/components/ui/glass-card";
+import { 
+  RiskTrendChart, 
+  ComplianceBarChart, 
+  RiskDistribution,
+  RiskHeatmap 
+} from "@/components/charts/premium-charts";
 
-// Mock data for premium dashboard
+// Enhanced mock data for ultra premium dashboard
 const mockRiskTrend = [
-  { date: "Mon", risk: 45, confidence: 82 },
-  { date: "Tue", risk: 48, confidence: 84 },
-  { date: "Wed", risk: 52, confidence: 86 },
-  { date: "Thu", risk: 58, confidence: 85 },
-  { date: "Fri", risk: 55, confidence: 87 },
-  { date: "Sat", risk: 62, confidence: 88 },
-  { date: "Sun", risk: 68, confidence: 89 },
+  { date: "Mon", risk: 45, confidence: 82, threshold: 60 },
+  { date: "Tue", risk: 48, confidence: 84, threshold: 60 },
+  { date: "Wed", risk: 52, confidence: 86, threshold: 60 },
+  { date: "Thu", risk: 58, confidence: 85, threshold: 60 },
+  { date: "Fri", risk: 55, confidence: 87, threshold: 60 },
+  { date: "Sat", risk: 62, confidence: 88, threshold: 60 },
+  { date: "Sun", risk: 68, confidence: 89, threshold: 60 },
 ];
 
 const mockComplianceData = [
-  { category: "GDPR", score: 72 },
-  { category: "HIPAA", score: 85 },
-  { category: "PCI DSS", score: 58 },
-  { category: "SOC2", score: 91 },
-  { category: "ISO 27001", score: 76 },
+  { category: "GDPR", score: 72, target: 80 },
+  { category: "HIPAA", score: 85, target: 85 },
+  { category: "PCI DSS", score: 58, target: 75 },
+  { category: "SOC2", score: 91, target: 90 },
+  { category: "ISO 27001", score: 76, target: 85 },
+  { category: "CCPA", score: 68, target: 75 },
 ];
 
 const mockRiskDistribution = [
@@ -33,42 +44,20 @@ const mockRiskDistribution = [
   { name: "Low", value: 25, color: "#22c55e" },
 ];
 
+const mockRiskHeatmap = [
+  { category: "Data Privacy", risk: 78, impact: 85 },
+  { category: "Security Controls", risk: 45, impact: 62 },
+  { category: "Third Party", risk: 82, impact: 70 },
+  { category: "Regulatory", risk: 58, impact: 88 },
+];
+
 const mockActivities = [
-  {
-    id: "1",
-    type: "upload" as const,
-    title: "Contract_2024_Q1.pdf uploaded",
-    description: "Size: 2.4 MB • 156 pages",
-    time: "2 min ago",
-  },
-  {
-    id: "2",
-    type: "analysis" as const,
-    title: "AI Analysis started",
-    description: "Processing document for compliance risks",
-    time: "5 min ago",
-  },
-  {
-    id: "3",
-    type: "risk" as const,
-    title: "High-risk clause detected",
-    description: "Section 4.2: Data sharing agreement missing",
-    time: "12 min ago",
-  },
-  {
-    id: "4",
-    type: "complete" as const,
-    title: "Annual Report analysis complete",
-    description: "Risk score: 64/100 • 3 recommendations",
-    time: "1 hour ago",
-  },
-  {
-    id: "5",
-    type: "upload" as const,
-    title: "Vendor_Agreement.docx uploaded",
-    description: "Size: 856 KB • 42 pages",
-    time: "2 hours ago",
-  },
+  { id: "1", type: "upload" as const, title: "Contract_2024_Q1.pdf uploaded", description: "Size: 2.4 MB • 156 pages", time: "2 min ago" },
+  { id: "2", type: "analysis" as const, title: "AI Analysis started", description: "Processing document for compliance risks", time: "5 min ago" },
+  { id: "3", type: "risk" as const, title: "High-risk clause detected", description: "Section 4.2: Data sharing agreement missing", time: "12 min ago" },
+  { id: "4", type: "complete" as const, title: "Annual Report analysis complete", description: "Risk score: 64/100 • 3 recommendations", time: "1 hour ago" },
+  { id: "5", type: "upload" as const, title: "Vendor_Agreement.docx uploaded", description: "Size: 856 KB • 42 pages", time: "2 hours ago" },
+  { id: "6", type: "risk" as const, title: "GDPR non-compliance detected", description: "Data retention policy missing", time: "3 hours ago" },
 ];
 
 export default function DashboardPage() {
@@ -76,30 +65,39 @@ export default function DashboardPage() {
   const complianceScore = 76;
   const activeIssues = 12;
   const confidenceLevel = 89;
+  const pendingReviews = 5;
+  const avgResolutionTime = "2.4d";
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with animated gradient */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="flex items-center justify-between"
+        transition={{ duration: 0.6 }}
+        className="relative"
       >
-        <div>
-          <h1 className="text-4xl font-bold gradient-text">Analytics Dashboard</h1>
-          <p className="text-white/40 mt-1">Real-time compliance risk monitoring</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5">
-            <Activity className="h-4 w-4 text-green-400 animate-pulse" />
-            <span className="text-sm text-white/60">Live Updates</span>
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-transparent to-blue-500/20 blur-3xl" />
+        <div className="relative flex items-center justify-between">
+          <div>
+            <h1 className="text-5xl font-bold gradient-text-premium">Analytics Dashboard</h1>
+            <p className="text-white/40 mt-2">Real-time compliance risk monitoring & intelligence</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10">
+              <Activity className="h-4 w-4 text-green-400 animate-pulse" />
+              <span className="text-sm text-white/70">Live Updates</span>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30">
+              <Sparkles className="h-4 w-4 text-purple-400" />
+              <span className="text-sm text-white/70">AI Active</span>
+            </div>
           </div>
         </div>
       </motion.div>
 
-      {/* Metric Cards Row */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      {/* Enhanced Metric Cards Row - 6 cards for density */}
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <MetricCard
           title="Global Risk Score"
           value={`${globalRiskScore}/100`}
@@ -107,6 +105,7 @@ export default function DashboardPage() {
           icon={<Shield className="h-5 w-5" />}
           trend={[65, 62, 58, 64, 68, 66, 64]}
           color="purple"
+          subtitle="vs last month"
         />
         <MetricCard
           title="Compliance Score"
@@ -115,6 +114,7 @@ export default function DashboardPage() {
           icon={<CheckCircle2 className="h-5 w-5" />}
           trend={[71, 73, 74, 75, 76, 76, 76]}
           color="blue"
+          subtitle="Target: 80%"
         />
         <MetricCard
           title="Active Issues"
@@ -123,32 +123,92 @@ export default function DashboardPage() {
           icon={<AlertTriangle className="h-5 w-5" />}
           trend={[8, 9, 10, 11, 12, 12, 12]}
           color="red"
+          subtitle="Critical: 3"
         />
         <MetricCard
-          title="Confidence Level"
+          title="Confidence"
           value={`${confidenceLevel}%`}
           change={+3}
           icon={<TrendingUp className="h-5 w-5" />}
           trend={[82, 84, 85, 86, 87, 88, 89]}
           color="green"
+          subtitle="AI accuracy"
+        />
+        <MetricCard
+          title="Pending Review"
+          value={pendingReviews.toString()}
+          change={-2}
+          icon={<Clock className="h-5 w-5" />}
+          trend={[7, 6, 5, 5, 5, 5, 5]}
+          color="indigo"
+          subtitle="Awaiting action"
+        />
+        <MetricCard
+          title="Avg Resolution"
+          value={avgResolutionTime}
+          change={-0.3}
+          icon={<Target className="h-5 w-5" />}
+          trend={[3.2, 2.9, 2.7, 2.6, 2.5, 2.4, 2.4]}
+          color="blue"
+          subtitle="days to close"
         />
       </div>
 
-      {/* Main Charts Row */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <RiskTrendChart data={mockRiskTrend} />
-        <ComplianceBarChart data={mockComplianceData} />
+      {/* Main Charts Grid - 2/3 + 1/3 Layout */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <RiskTrendChart data={mockRiskTrend} />
+        </div>
+        <div className="lg:col-span-1">
+          <ComplianceBarChart data={mockComplianceData} />
+        </div>
       </div>
 
-      {/* Risk Gauge and Distribution Row */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <RiskGauge value={globalRiskScore} size={280} title="Enterprise Risk Score" />
+      {/* Middle Row - Risk Gauge + Distribution + Heatmap */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <RiskGauge value={globalRiskScore} size={240} title="Enterprise Risk Score" subtitle="vs industry benchmark: 58%" />
         <RiskDistribution data={mockRiskDistribution} />
+        <RiskHeatmap data={mockRiskHeatmap} />
       </div>
 
-      {/* Activity Feed */}
-      <div className="grid gap-6">
+      {/* Bottom Row - Activity Feed + Mini Stats */}
+      <div className="grid gap-6 lg:grid-cols-2">
         <ActivityFeed activities={mockActivities} />
+        
+        {/* Mini Stats Card */}
+        <GlassCard className="p-6" premium>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-white/80">Quick Insights</h3>
+            <Bell className="h-4 w-4 text-white/40" />
+          </div>
+          <div className="space-y-4">
+            <div className="p-3 rounded-xl bg-white/5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-white/60">Top Risk Category</span>
+                <span className="text-xs text-orange-400">High</span>
+              </div>
+              <p className="text-sm font-medium">Third Party Risk Management</p>
+              <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <div className="h-full w-[82%] bg-gradient-to-r from-orange-500 to-red-500 rounded-full" />
+              </div>
+            </div>
+            <div className="p-3 rounded-xl bg-white/5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-white/60">Improvement Areas</span>
+                <span className="text-xs text-green-400">+12%</span>
+              </div>
+              <p className="text-sm font-medium">Data Governance</p>
+              <p className="text-xs text-white/40 mt-1">Up 12% from last quarter</p>
+            </div>
+            <div className="p-3 rounded-xl bg-gradient-to-r from-purple-500/20 to-blue-500/20">
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-purple-400" />
+                <span className="text-xs font-medium">AI Recommendation</span>
+              </div>
+              <p className="text-sm mt-1">Review data retention policies in section 4.2</p>
+            </div>
+          </div>
+        </GlassCard>
       </div>
 
       {/* Footer */}
@@ -156,14 +216,17 @@ export default function DashboardPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.8 }}
-        className="flex items-center justify-between pt-4 border-t border-white/10"
+        className="flex items-center justify-between pt-6 border-t border-white/10"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Zap className="h-4 w-4 text-purple-400" />
-          <span className="text-xs text-white/40">Powered by DeepSeek AI</span>
+          <span className="text-xs text-white/40">Powered by DeepSeek AI v3.0</span>
+          <div className="h-4 w-px bg-white/20" />
+          <span className="text-xs text-white/40">Real-time analysis • 99.9% uptime</span>
         </div>
-        <div className="text-xs text-white/40">
-          Last updated: {new Date().toLocaleTimeString()}
+        <div className="flex items-center gap-2">
+          <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+          <span className="text-xs text-white/40">Last updated: {new Date().toLocaleTimeString()}</span>
         </div>
       </motion.div>
     </div>
