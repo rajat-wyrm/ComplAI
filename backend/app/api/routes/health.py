@@ -1,18 +1,32 @@
-﻿"""
-Health check endpoint
-"""
-from fastapi import APIRouter
+﻿from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 from datetime import datetime
-from app.models import HealthResponse
+from app.core.database import get_database
+from app.core.cache import get_redis
 
 router = APIRouter()
 
-@router.get("", response_model=HealthResponse)
-async def health_check():
-    """Health check"""
-    return HealthResponse(
-        status="healthy",
-        timestamp=datetime.utcnow().isoformat(),
-        service="AI Compliance & Risk Copilot",
-        version="1.0.0"
-    )
+@router.get("/health")
+async def health_check(db = Depends(get_database), redis_client = Depends(get_redis)):
+    try:
+        await db.command('ping')
+        db_status = "connected"
+    except:
+        db_status = "disconnected"
+    
+    try:
+        await redis_client.ping()
+        redis_status = "connected"
+    except:
+        redis_status = "disconnected"
+    
+    return JSONResponse(content={
+        'status': 'healthy' if db_status == 'connected' and redis_status == 'connected' else 'degraded',
+        'timestamp': datetime.now().isoformat(),
+        'services': {
+            'mongodb': db_status,
+            'redis': redis_status,
+            'api': 'operational'
+        },
+        'version': '2.0.0'
+    })

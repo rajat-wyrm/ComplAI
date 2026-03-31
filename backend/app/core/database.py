@@ -1,40 +1,32 @@
-﻿"""
-MongoDB connection
-"""
-from motor.motor_asyncio import AsyncIOMotorClient
-from app.core.config import settings
+﻿from motor.motor_asyncio import AsyncIOMotorClient
+from dotenv import load_dotenv
+import os
 import logging
 
+load_dotenv()
 logger = logging.getLogger(__name__)
 
-class Database:
-    client: AsyncIOMotorClient = None
-    db = None
+mongodb_client = None
+database = None
 
-db = Database()
-
-async def init_db():
+async def connect_to_mongo():
+    global mongodb_client, database
     try:
-        db.client = AsyncIOMotorClient(settings.MONGODB_URL)
-        db.db = db.client[settings.MONGO_DB_NAME]
-        await db.client.admin.command('ping')
-        logger.info("Connected to MongoDB")
-        
-        # Create indexes
-        await db.db.documents.create_index("document_id", unique=True)
-        await db.db.documents.create_index("upload_date")
-        await db.db.analyses.create_index("document_id")
-        await db.db.chat_history.create_index("session_id")
-        
-        return db.db
+        mongodb_url = os.getenv('MONGODB_URL')
+        mongodb_client = AsyncIOMotorClient(mongodb_url)
+        database = mongodb_client.compliance_copilot
+        await mongodb_client.admin.command('ping')
+        logger.info("Connected to MongoDB Atlas")
+        return database
     except Exception as e:
         logger.error(f"MongoDB connection failed: {e}")
         raise
 
-async def close_db():
-    if db.client:
-        db.client.close()
-        logger.info("MongoDB closed")
+async def close_mongo_connection():
+    global mongodb_client
+    if mongodb_client:
+        mongodb_client.close()
+        logger.info("MongoDB connection closed")
 
-def get_db():
-    return db.db
+def get_database():
+    return database
