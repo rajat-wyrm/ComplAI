@@ -1,88 +1,56 @@
-﻿"""
-AI Compliance & Risk Copilot - Main Application
-"""
-from fastapi import FastAPI
+﻿from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
+from dotenv import load_dotenv
 import logging
-import sys
-from pathlib import Path
+import os
 
-sys.path.append(str(Path(__file__).parent))
+load_dotenv()
 
-from app.core.config import settings
-from app.core.database import init_db, close_db
-from app.services.vector_store import vector_store
-from app.api.routes import health, upload, analyze, insights, chat, history
-
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Lifespan context manager"""
-    logger.info("Starting AI Compliance & Risk Copilot...")
-    
-    # Initialize database
-    try:
-        await init_db()
-        logger.info("Database connected")
-    except Exception as e:
-        logger.warning(f"Database init skipped: {e}")
-    
-    # Load vector store
-    try:
-        vector_store.load()
-        logger.info("Vector store loaded")
-    except Exception as e:
-        logger.warning(f"Vector store load skipped: {e}")
-    
-    yield
-    
-    # Cleanup
-    try:
-        await close_db()
-        logger.info("Database closed")
-    except Exception as e:
-        logger.warning(f"Database close error: {e}")
+app = FastAPI(title="AI Compliance & Risk Copilot", version="2.0.0")
 
-app = FastAPI(
-    title="AI Compliance & Risk Copilot",
-    description="RegTech AI for compliance document analysis",
-    version="1.0.0",
-    lifespan=lifespan
-)
-
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=["http://localhost:3000", "http://localhost:8000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(health.router, prefix="/health", tags=["Health"])
-app.include_router(upload.router, prefix="/upload", tags=["Upload"])
-app.include_router(analyze.router, prefix="/analyze", tags=["Analysis"])
-app.include_router(insights.router, prefix="/insights", tags=["Insights"])
-app.include_router(chat.router, prefix="/chat", tags=["Chat"])
-app.include_router(history.router, prefix="/history", tags=["History"])
+from app.api.routes import analyze, insights, chat, history, health
+from app.core.database import connect_to_mongo, close_mongo_connection
+from app.core.cache import connect_to_redis, close_redis_connection
+
+app.include_router(analyze.router, prefix="/api", tags=["Analysis"])
+app.include_router(insights.router, prefix="/api", tags=["Insights"])
+app.include_router(chat.router, prefix="/api", tags=["Chat"])
+app.include_router(history.router, prefix="/api", tags=["History"])
+app.include_router(health.router, prefix="/api", tags=["Health"])
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Starting AI Compliance Copilot...")
+    await connect_to_mongo()
+    await connect_to_redis()
+    logger.info("All services initialized")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("Shutting down...")
+    await close_mongo_connection()
+    await close_redis_connection()
 
 @app.get("/")
 async def root():
-    """Root endpoint"""
     return {
-        "name": "AI Compliance & Risk Copilot",
-        "version": "1.0.0",
-        "status": "operational"
+        "message": "AI Compliance & Risk Copilot API",
+        "version": "2.0.0",
+        "status": "operational",
+        "endpoints": ["/api/upload", "/api/insights", "/api/chat", "/api/history", "/health"]
     }
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True
-    )
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
