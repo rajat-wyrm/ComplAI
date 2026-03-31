@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { getInsights } from '@/lib/api';
 import { motion } from 'framer-motion';
 
@@ -18,7 +18,10 @@ export default function DashboardPage() {
     } catch {}
   };
 
-  return (
+  const optimizedData = useMemo(() => {
+  return analytics || {};
+}, [analytics]);
+return (
     <div className="space-y-6">
 
       <h1 className="text-3xl font-bold">AI Intelligence Dashboard</h1>
@@ -44,3 +47,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

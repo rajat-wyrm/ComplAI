@@ -1,8 +1,13 @@
-﻿import type { Metadata } from "next";
+import { PreloadRoutes } from '@/components/utils/PreloadRoutes';
+import type { Metadata } from "next";
+import { PreloadRoutes } from '@/components/utils/PreloadRoutes';
 import { Inter } from "next/font/google";
+import { PreloadRoutes } from '@/components/utils/PreloadRoutes';
 import "./globals.css";
 
+import { PreloadRoutes } from '@/components/utils/PreloadRoutes';
 import { Sidebar } from "@/components/layout/Sidebar";
+import { PreloadRoutes } from '@/components/utils/PreloadRoutes';
 import { TopBar } from "@/components/layout/TopBar";
 
 const inter = Inter({
@@ -73,7 +78,8 @@ export default function RootLayout({
 
                 {/* glass container */}
                 <div className="rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-lg p-4 md:p-6 shadow-inner">
-                  {children}
+                  <PreloadRoutes />
+{children}
                 </div>
 
               </div>
