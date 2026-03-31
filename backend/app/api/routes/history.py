@@ -1,58 +1,71 @@
-﻿"""
-Document history endpoint
-"""
-from fastapi import APIRouter, HTTPException, Query
+﻿from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from typing import Optional
-from datetime import datetime, timedelta
-import logging
+from bson import ObjectId
+from datetime import datetime
 
-from app.core.database import get_db
-from app.models import DocumentHistoryResponse, DocumentHistoryItem
+from app.core.database import get_database
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
 
-@router.get("", response_model=DocumentHistoryResponse)
-async def get_history(
-    limit: int = Query(50, ge=1, le=100),
-    offset: int = Query(0, ge=0),
-    status: Optional[str] = None,
-    days: Optional[int] = None
-):
-    """Get document history"""
+@router.get("/history")
+async def get_history(company_name: Optional[str] = None, limit: int = 50, db = Depends(get_database)):
     try:
-        db = get_db()
-        
         query = {}
-        if status:
-            query["status"] = status
-        if days:
-            cutoff = datetime.utcnow() - timedelta(days=days)
-            query["upload_date"] = {"$gte": cutoff}
+        if company_name:
+            query['company_name'] = company_name
         
-        total = await db.documents.count_documents(query)
+        documents = await db.documents.find(query).sort('upload_date', -1).to_list(length=limit)
         
-        cursor = db.documents.find(query).sort("upload_date", -1).skip(offset).limit(limit)
+        companies = await db.documents.distinct('company_name')
         
-        documents = []
-        async for doc in cursor:
-            documents.append(DocumentHistoryItem(
-                document_id=doc["document_id"],
-                filename=doc["filename"],
-                file_size=doc["file_size"],
-                upload_date=doc["upload_date"].isoformat(),
-                status=doc["status"],
-                risk_score=doc.get("risk_score")
-            ))
+        history_list = []
+        for doc in documents:
+            report = doc.get('analysis_report', {})
+            history_list.append({
+                'document_id': str(doc['_id']),
+                'company_name': doc.get('company_name', 'Unknown'),
+                'filename': doc.get('filename', 'unknown'),
+                'upload_date': doc.get('upload_date', datetime.now()).isoformat(),
+                'risk_score': report.get('risk_score', 0),
+                'compliance_score': report.get('compliance_score', 0),
+                'confidence_score': report.get('confidence_score', 0),
+                'issues_count': len(report.get('issues', [])),
+                'document_type': report.get('document_type', 'Unknown')
+            })
         
-        return DocumentHistoryResponse(
-            documents=documents,
-            total=total,
-            limit=limit,
-            offset=offset,
-            has_more=offset + limit < total
-        )
+        return JSONResponse(content={
+            'success': True,
+            'documents': history_list,
+            'companies': companies,
+            'total': len(history_list)
+        })
         
     except Exception as e:
-        logger.exception(f"History error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/history/company/{company_name}")
+async def get_company_history(company_name: str, limit: int = 100, db = Depends(get_database)):
+    try:
+        documents = await db.documents.find({'company_name': company_name}).sort('upload_date', -1).to_list(length=limit)
+        
+        history_list = []
+        for doc in documents:
+            report = doc.get('analysis_report', {})
+            history_list.append({
+                'document_id': str(doc['_id']),
+                'filename': doc.get('filename', 'unknown'),
+                'upload_date': doc.get('upload_date', datetime.now()).isoformat(),
+                'risk_score': report.get('risk_score', 0),
+                'compliance_score': report.get('compliance_score', 0)
+            })
+        
+        return JSONResponse(content={
+            'success': True,
+            'company_name': company_name,
+            'documents': history_list,
+            'total': len(history_list)
+        })
+        
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
