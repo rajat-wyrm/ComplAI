@@ -23,10 +23,8 @@ export async function getDocumentDetail(documentId: string) {
   return res.json();
 }
 
-export async function getInsights() {
-  const res = await fetch(`${API_BASE}/api/insights`);
-  return res.json();
-}
+// Alias for history (for existing pages)
+export const getHistory = getDocumentHistory;
 
 export async function sendChatMessage(documentId: string, message: string, history: any[] = []) {
   const res = await fetch(`${API_BASE}/api/chat`, {
@@ -34,5 +32,10 @@ export async function sendChatMessage(documentId: string, message: string, histo
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ document_id: documentId, message, history })
   });
+  return res.json();
+}
+
+export async function getInsights() {
+  const res = await fetch(`${API_BASE}/api/insights`);
   return res.json();
 }
