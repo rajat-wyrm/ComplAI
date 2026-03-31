@@ -19,13 +19,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.api.routes import analyze, insights, chat, history, health, dashboard
+from app.api.routes import websocket, analyze, insights, chat, history, health, dashboard
 
 app.include_router(analyze.router, prefix="/api", tags=["Analysis"])
 app.include_router(insights.router, prefix="/api", tags=["Insights"])
 app.include_router(chat.router, prefix="/api", tags=["Chat"])
 app.include_router(history.router, prefix="/api", tags=["History"])
-app.include_router(health.router, prefix="/api", tags=["Health"])
+app.include_router(health.router, prefix='/api', tags=['Health'])\napp.include_router(websocket.router, prefix='', tags=['WebSocket'])
 app.include_router(dashboard.router, prefix="/api", tags=["Dashboard"])
 
 @app.on_event("startup")
@@ -57,3 +57,4 @@ async def root():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+

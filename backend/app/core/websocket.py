@@ -1,0 +1,35 @@
+﻿from typing import List, Dict
+import asyncio
+import json
+from fastapi import WebSocket, WebSocketDisconnect
+import logging
+
+logger = logging.getLogger(__name__)
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[str, List[WebSocket]] = {}
+
+    async def connect(self, websocket: WebSocket, user_id: str = "default"):
+        await websocket.accept()
+        if user_id not in self.active_connections:
+            self.active_connections[user_id] = []
+        self.active_connections[user_id].append(websocket)
+        logger.info(f"WebSocket connected for user {user_id}")
+
+    def disconnect(self, websocket: WebSocket, user_id: str = "default"):
+        if user_id in self.active_connections:
+            self.active_connections[user_id].remove(websocket)
+            if not self.active_connections[user_id]:
+                del self.active_connections[user_id]
+
+    async def broadcast(self, message: dict, user_id: str = "default"):
+        if user_id in self.active_connections:
+            for connection in self.active_connections[user_id]:
+                try:
+                    await connection.send_json(message)
+                except:
+                    pass
+        logger.info(f"Broadcast to user {user_id}: {message}")
+
+manager = ConnectionManager()
