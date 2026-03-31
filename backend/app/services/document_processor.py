@@ -1,111 +1,113 @@
-﻿"""
-Document processing utilities
-"""
-import os
-import logging
-from pathlib import Path
-import aiofiles
-import PyPDF2
-import pdfplumber
+﻿from pypdf import PdfReader
 from docx import Document
-from typing import List
-from app.core.config import settings
+import re
+from typing import Dict, Any, Optional
+import logging
 
 logger = logging.getLogger(__name__)
 
 class DocumentProcessor:
-    """Handle document extraction and processing"""
-    
-    ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.txt'}
-    
     def __init__(self):
-        self.upload_dir = Path(settings.UPLOAD_DIR)
-        self.upload_dir.mkdir(parents=True, exist_ok=True)
+        pass
     
-    def validate_file(self, filename: str, file_size: int) -> bool:
-        """Validate file type and size"""
-        ext = Path(filename).suffix.lower()
-        if ext not in self.ALLOWED_EXTENSIONS:
-            raise ValueError(f"Unsupported file type: {ext}")
-        if file_size > settings.MAX_FILE_SIZE:
-            raise ValueError(f"File too large: {file_size} bytes")
-        return True
-    
-    async def save_upload(self, content: bytes, filename: str) -> Path:
-        """Save uploaded file"""
-        file_path = self.upload_dir / filename
-        async with aiofiles.open(file_path, 'wb') as f:
-            await f.write(content)
-        logger.info(f"File saved: {file_path}")
-        return file_path
-    
-    def extract_text(self, file_path: Path) -> str:
-        """Extract text from document"""
-        ext = file_path.suffix.lower()
-        
-        if ext == '.pdf':
-            return self._extract_from_pdf(file_path)
-        elif ext == '.docx':
-            return self._extract_from_docx(file_path)
-        elif ext == '.txt':
-            return self._extract_from_txt(file_path)
-        else:
-            raise ValueError(f"Unsupported file type: {ext}")
-    
-    def _extract_from_pdf(self, file_path: Path) -> str:
-        """Extract text from PDF"""
-        text = ""
+    def extract_text_from_pdf(self, file_path: str) -> str:
         try:
-            with pdfplumber.open(file_path) as pdf:
-                for page in pdf.pages:
-                    page_text = page.extract_text()
-                    if page_text:
-                        text += page_text + "\n"
+            reader = PdfReader(file_path)
+            text = ""
+            for page in reader.pages:
+                text += page.extract_text()
+            return text
         except Exception as e:
-            logger.warning(f"pdfplumber failed: {e}, trying PyPDF2")
-            try:
-                with open(file_path, 'rb') as f:
-                    reader = PyPDF2.PdfReader(f)
-                    for page in reader.pages:
-                        page_text = page.extract_text()
-                        if page_text:
-                            text += page_text + "\n"
-            except Exception as e2:
-                raise ValueError(f"PDF extraction failed: {e2}")
-        
-        if not text.strip():
-            raise ValueError("No text extracted from PDF")
-        return text
+            logger.error(f"Failed to extract text from PDF: {e}")
+            raise
     
-    def _extract_from_docx(self, file_path: Path) -> str:
-        """Extract text from DOCX"""
-        doc = Document(file_path)
-        text = "\n".join([p.text for p in doc.paragraphs])
-        if not text.strip():
-            raise ValueError("No text in DOCX document")
-        return text
+    def extract_text_from_docx(self, file_path: str) -> str:
+        try:
+            doc = Document(file_path)
+            text = ""
+            for paragraph in doc.paragraphs:
+                text += paragraph.text + "\n"
+            return text
+        except Exception as e:
+            logger.error(f"Failed to extract text from DOCX: {e}")
+            raise
     
-    def _extract_from_txt(self, file_path: Path) -> str:
-        """Extract text from TXT"""
-        with open(file_path, 'r', encoding='utf-8') as f:
-            text = f.read()
-        if not text.strip():
-            raise ValueError("Empty text file")
-        return text
+    def extract_text(self, file_path: str) -> str:
+        if file_path.endswith('.pdf'):
+            return self.extract_text_from_pdf(file_path)
+        elif file_path.endswith('.docx'):
+            return self.extract_text_from_docx(file_path)
+        else:
+            raise ValueError(f"Unsupported file format: {file_path}")
     
-    def chunk_text(self, text: str) -> List[str]:
-        """Split text into overlapping chunks"""
-        words = text.split()
-        chunks = []
-        chunk_size = settings.CHUNK_SIZE
-        overlap = settings.CHUNK_OVERLAP
+    def detect_company_name(self, text: str) -> Optional[str]:
+        patterns = [
+            r'Company\s*Name:?\s*([^\n]+)',
+            r'Organization\s*Name:?\s*([^\n]+)',
+            r'Registered\s*Name:?\s*([^\n]+)',
+            r'(?:The\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:\s+Private\s+Limited|\s+Limited|\s+Pvt\.?\s+Ltd\.?))',
+        ]
         
-        for i in range(0, len(words), chunk_size - overlap):
-            chunk_words = words[i:i + chunk_size]
-            if chunk_words:
-                chunks.append(" ".join(chunk_words))
+        for pattern in patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                return match.group(1).strip()
         
-        logger.info(f"Created {len(chunks)} chunks")
-        return chunks
-
-processor = DocumentProcessor()
+        lines = text.split('\n')[:20]
+        for line in lines:
+            if len(line) < 50 and any(word in line.lower() for word in ['pvt', 'ltd', 'limited', 'corp', 'inc']):
+                return line.strip()
+        
+        return "Unknown Company"
+    
+    def detect_dates(self, text: str) -> list:
+        date_patterns = [
+            r'\d{2}[/-]\d{2}[/-]\d{4}',
+            r'\d{4}[/-]\d{2}[/-]\d{2}',
+            r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}',
+        ]
+        
+        dates = []
+        for pattern in date_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            dates.extend(matches)
+        
+        return list(set(dates))
+    
+    def extract_clauses(self, text: str) -> list:
+        clause_patterns = [
+            r'(\d+\.\d+\.?\d*\s+[A-Z][^.\n]{10,200}[.\n])',
+            r'(Clause\s+\d+[.:]\s+[^.\n]{20,300}[.\n])',
+            r'(Section\s+\d+[.:]\s+[^.\n]{20,300}[.\n])',
+            r'(Article\s+\d+[.:]\s+[^.\n]{20,300}[.\n])',
+        ]
+        
+        clauses = []
+        for pattern in clause_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            clauses.extend(matches)
+        
+        return clauses[:20]
+    
+    def detect_headings(self, text: str) -> list:
+        heading_pattern = r'^([A-Z][A-Z\s]{5,50}|[A-Z][a-z\s]{5,60}):?$'
+        headings = []
+        
+        for line in text.split('\n'):
+            if re.match(heading_pattern, line.strip()):
+                headings.append(line.strip())
+        
+        return headings[:15]
+    
+    def analyze_document(self, file_path: str) -> Dict[str, Any]:
+        text = self.extract_text(file_path)
+        
+        return {
+            'full_text': text,
+            'company_name': self.detect_company_name(text),
+            'dates': self.detect_dates(text),
+            'clauses': self.extract_clauses(text),
+            'headings': self.detect_headings(text),
+            'word_count': len(text.split()),
+            'character_count': len(text)
+        }
