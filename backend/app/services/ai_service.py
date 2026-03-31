@@ -1,62 +1,39 @@
-import re
-
-def detect_document_type(text: str):
+def detect_type(text):
     text = text.lower()
-
     if "resume" in text or "education" in text:
         return "Resume"
     if "policy" in text or "compliance" in text:
-        return "Policy Document"
-    if "agreement" in text or "contract" in text:
-        return "Legal Document"
-    
-    return "General Document"
-
-
-def extract_issues(text: str):
-    issues = []
-
-    if "password" in text:
-        issues.append({
-            "title": "Security Risk",
-            "severity": "high",
-            "description": "Sensitive credential exposure",
-            "recommendation": "Remove passwords or secrets"
-        })
-
-    if len(text) < 200:
-        issues.append({
-            "title": "Low Content",
-            "severity": "low",
-            "description": "Document too short",
-            "recommendation": "Add more detailed content"
-        })
-
-    return issues
-
+        return "Policy"
+    if "agreement" in text:
+        return "Legal"
+    return "General"
 
 async def analyze_document(text: str):
     if not text:
         return {
             "risk_score": 50,
             "compliance_score": 50,
-            "confidence_score": 50,
-            "summary": "Empty document",
+            "confidence_score": 60,
+            "summary": "No content",
             "issues": [],
             "document_type": "Unknown"
         }
 
-    doc_type = detect_document_type(text)
-    issues = extract_issues(text)
+    issues = []
 
-    risk = 30 + len(issues) * 10
-    compliance = 70 - len(issues) * 5
+    if "password" in text.lower():
+        issues.append({
+            "title": "Sensitive Data",
+            "severity": "high",
+            "description": "Possible credential leak",
+            "recommendation": "Remove sensitive data"
+        })
 
     return {
-        "risk_score": min(risk, 100),
-        "compliance_score": max(compliance, 0),
+        "risk_score": 40 + len(issues)*10,
+        "compliance_score": 70 - len(issues)*5,
         "confidence_score": 80,
         "summary": text[:300],
         "issues": issues,
-        "document_type": doc_type
+        "document_type": detect_type(text)
     }
