@@ -15,7 +15,7 @@ from app.core.logging import setup_logging
 from app.core.database import connect_to_mongo, close_mongo_connection
 from app.core.cache import init_redis, close_redis
 from app.services.vector_store import vector_store  # auto-loads
-from app.api.routes import ws, health, upload, insights, chat, history
+from app.api.routes import  health, upload, insights, chat, history
 
 # =========================
 # LOGGING SETUP
@@ -126,7 +126,7 @@ app.include_router(upload.router, prefix="/upload", tags=["Upload"])
 app.include_router(insights.router, prefix="/insights", tags=["Insights"])
 app.include_router(chat.router, prefix="/chat", tags=["Chat"])
 app.include_router(history.router, prefix="/history", tags=["History"])
-app.include_router(ws.router)
+app.include_router()
 
 
 # =========================
@@ -195,3 +195,4 @@ if __name__ == "__main__":
         reload=settings.ENVIRONMENT == "development",
         workers=1  # can increase in production
     )
+

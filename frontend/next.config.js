@@ -1,12 +1,7 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  compress: true,
-  poweredByHeader: false,
-  experimental: {
-    optimizeCss: true,
-    scrollRestoration: true
-  }
+  compress: true
 };
 
 module.exports = nextConfig;
