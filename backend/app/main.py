@@ -1,4 +1,4 @@
-﻿"""
+"""
 AI Compliance & Risk Copilot - Main Application (PRODUCTION-GRADE)
 """
 
@@ -15,7 +15,7 @@ from app.core.logging import setup_logging
 from app.core.database import connect_to_mongo, close_mongo_connection
 from app.core.cache import init_redis, close_redis
 from app.services.vector_store import vector_store  # auto-loads
-from app.api.routes import health, upload, insights, chat, history
+from app.api.routes import ws, health, upload, insights, chat, history
 
 # =========================
 # LOGGING SETUP
@@ -29,34 +29,34 @@ logger = logging.getLogger(__name__)
 # =========================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("🚀 Starting AI Compliance & Risk Copilot...")
+    logger.info("?? Starting AI Compliance & Risk Copilot...")
 
     # ===== DATABASE =====
     try:
         await connect_to_mongo()
-        logger.info("✅ MongoDB connected")
+        logger.info("? MongoDB connected")
     except Exception as e:
-        logger.exception(f"❌ MongoDB failed: {e}")
+        logger.exception(f"? MongoDB failed: {e}")
 
     # ===== REDIS =====
     try:
         await init_redis()
-        logger.info("✅ Redis connected")
+        logger.info("? Redis connected")
     except Exception as e:
-        logger.warning(f"⚠️ Redis unavailable: {e}")
+        logger.warning(f"?? Redis unavailable: {e}")
 
     # ===== VECTOR STORE =====
     try:
         # already auto-loaded via import
-        logger.info(f"✅ Vector store ready ({len(vector_store.chunks)} chunks)")
+        logger.info(f"? Vector store ready ({len(vector_store.chunks)} chunks)")
     except Exception as e:
-        logger.warning(f"⚠️ Vector store issue: {e}")
+        logger.warning(f"?? Vector store issue: {e}")
 
-    logger.info("🔥 Application startup complete")
+    logger.info("?? Application startup complete")
 
     yield
 
-    logger.info("🛑 Shutting down...")
+    logger.info("?? Shutting down...")
 
     # ===== CLEANUP =====
     try:
@@ -69,7 +69,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Redis close failed: {e}")
 
-    logger.info("👋 Shutdown complete")
+    logger.info("?? Shutdown complete")
 
 
 # =========================
@@ -126,6 +126,7 @@ app.include_router(upload.router, prefix="/upload", tags=["Upload"])
 app.include_router(insights.router, prefix="/insights", tags=["Insights"])
 app.include_router(chat.router, prefix="/chat", tags=["Chat"])
 app.include_router(history.router, prefix="/history", tags=["History"])
+app.include_router(ws.router)
 
 
 # =========================

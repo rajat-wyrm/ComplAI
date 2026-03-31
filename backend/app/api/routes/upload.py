@@ -1,4 +1,4 @@
-﻿import uuid
+import uuid
 import logging
 import asyncio
 from datetime import datetime
@@ -23,7 +23,13 @@ def build_safe_report(ai_result: Dict[str, Any], raw_text: str) -> Dict[str, Any
     Guarantees frontend-compatible structure ALWAYS
     """
 
-    return {
+    
+        from app.websocket.manager import manager
+        await manager.send_update(doc_id, {
+            "type": "analysis_complete",
+            "report": report
+        })
+        return {
         "risk_score": ai_result.get("risk_score", 50),
         "compliance_score": ai_result.get("compliance_score", 50),
         "confidence_score": ai_result.get("confidence_score", 60),
@@ -37,7 +43,7 @@ def build_safe_report(ai_result: Dict[str, Any], raw_text: str) -> Dict[str, Any
 
         "issues": ai_result.get("issues", []),
 
-        # 🔥 ADVANCED FIELDS (optional but safe)
+        # ?? ADVANCED FIELDS (optional but safe)
         "key_points": ai_result.get("key_points", []),
         "sensitive_data": ai_result.get("sensitive_data", []),
         "missing_items": ai_result.get("missing_items", [])
@@ -52,7 +58,7 @@ async def upload_file(file: UploadFile = File(...)):
     """
     UNIVERSAL PIPELINE:
 
-    Upload → Extract → Understand → AI → Store → Return
+    Upload ? Extract ? Understand ? AI ? Store ? Return
 
     Handles:
     - ANY document (resume, notes, policies, random)
@@ -91,7 +97,7 @@ async def upload_file(file: UploadFile = File(...)):
             logger.warning(f"Extraction failed: {e}")
             text = ""
 
-        # 🔥 FALLBACK TEXT (VERY IMPORTANT)
+        # ?? FALLBACK TEXT (VERY IMPORTANT)
         if not text or len(text.strip()) < 20:
             text = f"Raw file content could not be fully extracted. Filename: {file.filename}"
 
@@ -125,7 +131,7 @@ async def upload_file(file: UploadFile = File(...)):
                 "filename": file.filename,
                 "upload_date": datetime.utcnow(),
                 "report": report,
-                "raw_preview": text[:1000],  # 🔥 for debugging + chat
+                "raw_preview": text[:1000],  # ?? for debugging + chat
             })
 
         except Exception as e:
@@ -144,6 +150,12 @@ async def upload_file(file: UploadFile = File(...)):
         # =========================
         # 8. FINAL RESPONSE (STRICT FORMAT)
         # =========================
+        
+        from app.websocket.manager import manager
+        await manager.send_update(doc_id, {
+            "type": "analysis_complete",
+            "report": report
+        })
         return {
             "success": True,
             "document_id": doc_id,
@@ -157,8 +169,14 @@ async def upload_file(file: UploadFile = File(...)):
         logger.exception(f"CRITICAL UPLOAD FAILURE: {e}")
 
         # =========================
-        # 🔥 NEVER BREAK FRONTEND
+        # ?? NEVER BREAK FRONTEND
         # =========================
+        
+        from app.websocket.manager import manager
+        await manager.send_update(doc_id, {
+            "type": "analysis_complete",
+            "report": report
+        })
         return {
             "success": True,
             "document_id": doc_id,
