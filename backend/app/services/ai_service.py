@@ -8,45 +8,48 @@ import logging
 from dotenv import load_dotenv
 import os
 
-# Try to import transformers (optional)
+# Try to import HuggingFace transformers (optional)
 try:
     from transformers import pipeline
     HAS_TRANSFORMERS = True
 except ImportError:
     HAS_TRANSFORMERS = False
 
+from app.core.config import settings
+
 load_dotenv()
 logger = logging.getLogger(__name__)
 
 class AIService:
     def __init__(self):
-        self.deepseek_api_key = os.getenv('DEEPSEEK_API_KEY')
-        self.openai_api_key = os.getenv('OPENAI_API_KEY')
+        self.deepseek_api_key = settings.DEEPSEEK_API_KEY
+        self.openai_api_key = settings.OPENAI_API_KEY
+        self.huggingface_api_key = settings.HUGGINGFACE_API_KEY
+        
         self.deepseek_client = None
         self.openai_client = None
         self.local_model = None
 
-        if self.deepseek_api_key and self.deepseek_api_key != 'sk-placeholder':
+        if self.deepseek_api_key and self.deepseek_api_key != "sk-placeholder":
             self.deepseek_client = AsyncOpenAI(
                 api_key=self.deepseek_api_key,
                 base_url="https://api.deepseek.com/v1"
             )
             logger.info("DeepSeek client initialized")
-        if self.openai_api_key and self.openai_api_key != 'sk-placeholder-openai-key-if-needed':
+        if self.openai_api_key and self.openai_api_key != "sk-placeholder-openai-key-if-needed":
             self.openai_client = AsyncOpenAI(api_key=self.openai_api_key)
             logger.info("OpenAI client initialized")
 
         if HAS_TRANSFORMERS:
             try:
-                # Load a small, fast model for analysis
                 self.local_model = pipeline(
                     "text2text-generation",
                     model="google/flan-t5-small",
                     device=-1  # CPU
                 )
-                logger.info("Local transformer model loaded")
+                logger.info("Local HuggingFace model loaded")
             except Exception as e:
-                logger.warning(f"Local model failed: {e}")
+                logger.warning(f"Local model load failed: {e}")
 
     def get_system_prompt(self) -> str:
         return """You are an AI Compliance Risk Auditor. Analyze the given document and generate a structured compliance report. Return ONLY JSON."""
@@ -56,20 +59,28 @@ class AIService:
 {document_text[:2000]}
 """
         if context:
-            prompt += f"""Relevant context:
+            prompt += f"""Relevant context from similar documents:
 {context}
 
 """
-        prompt += """Generate compliance analysis in JSON format:
+        prompt += """Generate compliance analysis in JSON format with these keys:
 {
-  "company_name": "...",
-  "document_type": "...",
+  "document_type": "detected type (e.g., Contract, Policy, Resume, etc.)",
+  "summary": "brief summary",
   "risk_score": 0-100,
   "compliance_score": 0-100,
-  "issues": [{"title": "...", "severity": "Low/Medium/High", "category": "...", "description": "...", "recommendation": "..."}],
-  "summary": "...",
-  "next_actions": ["..."],
-  "confidence_score": 0-100
+  "confidence_score": 0-100,
+  "issues": [
+    {
+      "title": "issue title",
+      "severity": "Low/Medium/High",
+      "category": "category (e.g., Data Privacy, Security)",
+      "description": "detailed description",
+      "recommendation": "actionable recommendation"
+    }
+  ],
+  "recommendations": ["recommendation 1", "recommendation 2"],
+  "missing_elements": ["missing compliance element 1", "missing element 2"]
 }"""
         return prompt
 
@@ -110,14 +121,13 @@ class AIService:
             raise ValueError("Local model not available")
         prompt = self.get_analysis_prompt(document_text, context)
         # Truncate to model max length
-        prompt = prompt[:512]  # flan-t5-small max ~512
+        prompt = prompt[:512]
         result = self.local_model(prompt, max_new_tokens=500)[0]['generated_text']
-        # Attempt to parse JSON
         try:
             return json.loads(result)
         except:
-            # Fallback to mock
-            return await self.generate_mock_analysis(document_text, "Unknown")
+            # Fallback to mock if parsing fails
+            return await self.generate_mock_analysis(document_text)
 
     async def analyze_document(self, document_text: str, context: str = "") -> Dict[str, Any]:
         if self.deepseek_client:
@@ -135,33 +145,28 @@ class AIService:
                 return await self.analyze_with_local(document_text, context)
             except Exception as e:
                 logger.warning(f"Local model failed: {e}")
-
-        return await self.generate_mock_analysis(document_text, "Unknown")
+        # Final fallback: mock
+        return await self.generate_mock_analysis(document_text)
 
     async def generate_mock_analysis(self, document_text: str, company_name: str = "Unknown") -> Dict[str, Any]:
         logger.info("Using mock analysis")
         risk_score = min(85, max(15, len(document_text) // 100))
         compliance_score = 100 - risk_score
         return {
-            "company_name": company_name,
-            "document_type": "Compliance Document",
+            "document_type": "General Document",
+            "summary": f"This document appears to be a general text. Based on analysis, risk level is {risk_score}%.",
             "risk_score": risk_score,
             "compliance_score": compliance_score,
+            "confidence_score": 65,
             "issues": [
                 {
-                    "title": "Data Privacy Compliance",
-                    "severity": "Medium" if risk_score > 50 else "Low",
-                    "category": "Data Privacy",
-                    "description": "Document requires review for GDPR and local privacy law compliance.",
-                    "recommendation": "Implement data protection impact assessment and update privacy policies."
+                    "title": "Unclear compliance context",
+                    "severity": "Medium",
+                    "category": "General",
+                    "description": "The document does not clearly state compliance with regulations.",
+                    "recommendation": "Add explicit compliance statements and refer to relevant laws."
                 }
             ],
-            "summary": f"Document analysis shows {risk_score}% risk level with focus on compliance requirements.",
-            "next_actions": [
-                "Review all clauses for compliance gaps",
-                "Update documentation with missing policies",
-                "Schedule compliance training",
-                "Implement monitoring systems"
-            ],
-            "confidence_score": 65
+            "recommendations": ["Review document for regulatory alignment", "Add compliance clauses"],
+            "missing_elements": ["Compliance declaration", "Data protection statement"]
         }

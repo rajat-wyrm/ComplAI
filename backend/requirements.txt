@@ -21,3 +21,14 @@ numpy>=1.26.0
 pydantic==2.5.0
 pydantic-settings==2.1.0
 tenacity==8.2.3
+
+# For WebSocket
+websockets==12.0
+
+# For async tasks
+asyncio==3.4.3
+
+# For HuggingFace
+transformers==4.36.2
+torch==2.1.0
+accelerate==0.25.0
