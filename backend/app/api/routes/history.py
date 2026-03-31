@@ -1,4 +1,4 @@
-﻿"""
+"""
 Document History API (PRODUCTION-GRADE - OPTIMIZED & CONSISTENT)
 """
 
@@ -139,7 +139,7 @@ async def get_document(
                 "company_name": doc.get("company_name", "Unknown"),
                 "filename": doc.get("filename"),
                 "upload_date": _serialize_date(doc.get("upload_date")),
-                "report": report,  # ✅ standardized (frontend safe)
+                "report": report,  #  standardized (frontend safe)
                 "status": doc.get("status", "processed")
             }
         })

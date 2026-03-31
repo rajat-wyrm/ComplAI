@@ -1,4 +1,4 @@
-﻿"""
+"""
 AI Decision Engine with DeepSeek - Mock fallback for testing
 """
 import json

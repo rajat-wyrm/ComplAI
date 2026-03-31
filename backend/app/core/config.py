@@ -1,4 +1,4 @@
-﻿"""
+"""
 Configuration management - ULTRA FINAL (BULLETPROOF + PRODUCTION GRADE)
 """
 
@@ -130,7 +130,7 @@ class Settings(BaseSettings):
 try:
     settings = Settings()
 except Exception as e:
-    logger.error(f"⚠️ Settings failed, fallback mode: {e}")
+    logger.error(f"?? Settings failed, fallback mode: {e}")
     settings = Settings(
         OPENAI_API_KEY="",
         DEEPSEEK_API_KEY="",
@@ -168,7 +168,7 @@ except Exception:
 # FINAL SAFETY CHECKS
 # =========================
 if not settings.OPENAI_API_KEY:
-    logger.warning("OPENAI_API_KEY not set → using fallback AI")
+    logger.warning("OPENAI_API_KEY not set ? using fallback AI")
 
 if not settings.MONGODB_URL:
-    logger.error("MONGODB_URL missing → DB may fail")
+    logger.error("MONGODB_URL missing ? DB may fail")

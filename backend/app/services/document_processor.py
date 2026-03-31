@@ -1,12 +1,12 @@
-﻿"""
+"""
 Document Processor (ULTIMATE VERSION)
 
-✔ Handles ANY file (pdf, docx, txt, unknown)
-✔ Never returns empty text
-✔ Smart cleaning
-✔ Optimized chunking for AI + RAG
-✔ Fault-tolerant
-✔ Fast
+? Handles ANY file (pdf, docx, txt, unknown)
+? Never returns empty text
+? Smart cleaning
+? Optimized chunking for AI + RAG
+? Fault-tolerant
+? Fast
 """
 
 import os
@@ -61,12 +61,12 @@ class DocumentProcessor:
                 text = self._extract_txt(file_path)
 
             else:
-                # 🔥 UNKNOWN FILE → try raw read
+                #  UNKNOWN FILE ? try raw read
                 text = self._extract_fallback(file_path)
 
             text = self._clean_text(text)
 
-            # 🔥 NEVER RETURN EMPTY
+            #  NEVER RETURN EMPTY
             if not text or len(text.strip()) < 10:
                 return f"File processed but content was minimal or unreadable. Filename: {os.path.basename(file_path)}"
 

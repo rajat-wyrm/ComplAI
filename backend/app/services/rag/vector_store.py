@@ -1,4 +1,4 @@
-﻿import faiss
+import faiss
 import numpy as np
 from typing import List, Tuple, Dict, Any
 import pickle

@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from datetime import datetime
 from app.core.database import get_database

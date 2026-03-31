@@ -1,4 +1,4 @@
-﻿from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any
 from .embedder import Embedder
 from .vector_store import VectorStore
 import logging

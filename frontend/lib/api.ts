@@ -1,4 +1,4 @@
-﻿// =========================
+// =========================
 // BASE CONFIG
 // =========================
 const API_BASE_URL =
@@ -52,9 +52,9 @@ async function safeFetch(
       return safeFetch(url, options, timeout, retries - 1);
     }
 
-    console.error("🔥 API ERROR:", err.message);
+    console.error("?? API ERROR:", err.message);
 
-    // 🔥 NEVER BREAK FRONTEND
+    // ?? NEVER BREAK FRONTEND
     return { success: false, fallback: true };
   }
 }
@@ -72,7 +72,7 @@ export async function uploadDocument(file: File) {
     body: formData,
   });
 
-  // 🔥 ALWAYS RETURN SAFE STRUCTURE
+  // ?? ALWAYS RETURN SAFE STRUCTURE
   return {
     success: res?.success ?? true,
     document_id: res?.document_id ?? crypto.randomUUID(),
@@ -94,7 +94,7 @@ export async function uploadDocument(file: File) {
 // =========================
 // INSIGHTS
 // =========================
-export async function getInsights() {
+export async function  {
   const res = await safeFetch(`${API_BASE_URL}/insights`);
 
   return {

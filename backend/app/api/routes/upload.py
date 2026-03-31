@@ -24,7 +24,7 @@ def build_safe_report(ai_result: Dict[str, Any], raw_text: str) -> Dict[str, Any
     """
 
     
-        from app.websocket.manager import manager
+        
         await manager.send_update(doc_id, {
             "type": "analysis_complete",
             "report": report
@@ -151,7 +151,7 @@ async def upload_file(file: UploadFile = File(...)):
         # 8. FINAL RESPONSE (STRICT FORMAT)
         # =========================
         
-        from app.websocket.manager import manager
+        
         await manager.send_update(doc_id, {
             "type": "analysis_complete",
             "report": report
@@ -172,7 +172,7 @@ async def upload_file(file: UploadFile = File(...)):
         # ?? NEVER BREAK FRONTEND
         # =========================
         
-        from app.websocket.manager import manager
+        
         await manager.send_update(doc_id, {
             "type": "analysis_complete",
             "report": report
@@ -199,3 +199,5 @@ async def upload_file(file: UploadFile = File(...)):
                 "missing_items": []
             }
         }
+
+

@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 from datetime import datetime
 from typing import Dict, Any, List
 
@@ -174,7 +174,7 @@ async def get_insights():
         logger.exception(f"INSIGHTS FAILURE: {str(e)}")
 
         # =========================
-        # 🔥 FAILSAFE (NEVER BREAK DASHBOARD)
+        #  FAILSAFE (NEVER BREAK DASHBOARD)
         # =========================
         return {
             "success": True,

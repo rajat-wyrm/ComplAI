@@ -1,4 +1,4 @@
-﻿"""
+"""
 Chat API (PRODUCTION-GRADE - RAG + CACHE + STABLE AI)
 
 - Uses vector_store for RAG

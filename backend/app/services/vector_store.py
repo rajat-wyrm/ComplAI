@@ -1,4 +1,4 @@
-﻿"""
+"""
 Vector Store (PRODUCTION-GRADE - FAST + SCALABLE + HYBRID SEARCH)
 
 - Embedding-based semantic search (SentenceTransformers)
@@ -39,9 +39,9 @@ class VectorStore:
         try:
             from sentence_transformers import SentenceTransformer
             self.model = SentenceTransformer("all-MiniLM-L6-v2")
-            logger.info("✅ Embedding model loaded")
+            logger.info(" Embedding model loaded")
         except Exception as e:
-            logger.warning(f"⚠️ Embedding model unavailable: {e}")
+            logger.warning(f"?? Embedding model unavailable: {e}")
             self.model = None
 
     # =========================
@@ -82,7 +82,7 @@ class VectorStore:
             else:
                 self.embeddings = np.vstack([self.embeddings, new_embeddings])
 
-            logger.info(f"✅ Added {len(chunks)} chunks for {doc_id}")
+            logger.info(f" Added {len(chunks)} chunks for {doc_id}")
 
             self._save()
 
@@ -161,7 +161,7 @@ class VectorStore:
                     "embeddings": self.embeddings
                 }, f)
 
-            logger.info(f"💾 Saved vector store ({len(self.chunks)} chunks)")
+            logger.info(f" Saved vector store ({len(self.chunks)} chunks)")
 
         except Exception as e:
             logger.exception(f"Save failed: {e}")
@@ -180,7 +180,7 @@ class VectorStore:
                 self.metadata = data.get("metadata", [])
                 self.embeddings = data.get("embeddings", None)
 
-            logger.info(f"📦 Loaded vector store ({len(self.chunks)} chunks)")
+            logger.info(f" Loaded vector store ({len(self.chunks)} chunks)")
 
         except Exception as e:
             logger.warning(f"Load failed: {e}")
@@ -197,7 +197,7 @@ class VectorStore:
         if path.exists():
             os.remove(path)
 
-        logger.info("🧹 Vector store cleared")
+        logger.info("?? Vector store cleared")
 
 
 # Singleton

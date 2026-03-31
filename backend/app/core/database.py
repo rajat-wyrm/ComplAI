@@ -1,13 +1,13 @@
-﻿"""
+"""
 MongoDB Database Layer (ULTRA FINAL)
 
-✔ Singleton async connection
-✔ Auto-reconnect safe
-✔ High-performance pooling
-✔ Full compatibility (get_db, get_database, connect_to_mongo)
-✔ Optimized indexes
-✔ Never crashes system
-✔ Ready for production load
+? Singleton async connection
+? Auto-reconnect safe
+? High-performance pooling
+? Full compatibility (get_db, get_database, connect_to_mongo)
+? Optimized indexes
+? Never crashes system
+? Ready for production load
 """
 
 import logging
@@ -50,12 +50,12 @@ class MongoDB:
 
             cls.db = cls.client.get_database(settings.MONGO_DB_NAME)
 
-            # 🔥 VERIFY CONNECTION
+            #  VERIFY CONNECTION
             await cls.client.admin.command("ping")
 
             logger.info("MongoDB connected")
 
-            # 🔥 CREATE INDEXES
+            #  CREATE INDEXES
             await cls._ensure_indexes()
 
             return cls.db

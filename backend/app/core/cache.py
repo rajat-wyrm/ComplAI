@@ -1,12 +1,12 @@
-﻿"""
+"""
 Redis Cache Layer (ULTIMATE VERSION)
 
-✔ Async safe
-✔ Singleton connection
-✔ Auto fallback (never breaks system)
-✔ Production-ready pooling
-✔ Compatible with chat + RAG
-✔ Safe get/set wrappers
+? Async safe
+? Singleton connection
+? Auto fallback (never breaks system)
+? Production-ready pooling
+? Compatible with chat + RAG
+? Safe get/set wrappers
 """
 
 import os
@@ -36,7 +36,7 @@ class RedisManager:
             redis_url = os.getenv("REDIS_URL")
 
             if not redis_url:
-                logger.warning("⚠️ REDIS_URL not found → disabling cache")
+                logger.warning("?? REDIS_URL not found ? disabling cache")
                 cls.enabled = False
                 return None
 
@@ -51,11 +51,11 @@ class RedisManager:
 
             await cls.client.ping()
 
-            logger.info("✅ Redis connected")
+            logger.info(" Redis connected")
             return cls.client
 
         except Exception as e:
-            logger.warning(f"⚠️ Redis unavailable → fallback mode: {e}")
+            logger.warning(f"?? Redis unavailable ? fallback mode: {e}")
             cls.enabled = False
             cls.client = None
             return None
@@ -69,7 +69,7 @@ class RedisManager:
             if cls.client:
                 await cls.client.close()
                 cls.client = None
-                logger.info("🔌 Redis closed")
+                logger.info(" Redis closed")
         except Exception as e:
             logger.warning(f"Redis close error: {e}")
 
