@@ -19,19 +19,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.api.routes import analyze, insights, chat, history, health
-from app.core.database import connect_to_mongo, close_mongo_connection
-from app.core.cache import connect_to_redis, close_redis_connection
+from app.api.routes import analyze, insights, chat, history, health, dashboard
 
 app.include_router(analyze.router, prefix="/api", tags=["Analysis"])
 app.include_router(insights.router, prefix="/api", tags=["Insights"])
 app.include_router(chat.router, prefix="/api", tags=["Chat"])
 app.include_router(history.router, prefix="/api", tags=["History"])
 app.include_router(health.router, prefix="/api", tags=["Health"])
+app.include_router(dashboard.router, prefix="/api", tags=["Dashboard"])
 
 @app.on_event("startup")
 async def startup_event():
     logger.info("Starting AI Compliance Copilot...")
+    from app.core.database import connect_to_mongo
+    from app.core.cache import connect_to_redis
     await connect_to_mongo()
     await connect_to_redis()
     logger.info("All services initialized")
@@ -39,6 +40,8 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     logger.info("Shutting down...")
+    from app.core.database import close_mongo_connection
+    from app.core.cache import close_redis_connection
     await close_mongo_connection()
     await close_redis_connection()
 
@@ -48,7 +51,7 @@ async def root():
         "message": "AI Compliance & Risk Copilot API",
         "version": "2.0.0",
         "status": "operational",
-        "endpoints": ["/api/upload", "/api/insights", "/api/chat", "/api/history", "/health"]
+        "endpoints": ["/api/upload", "/api/dashboard", "/api/insights", "/api/chat", "/api/history", "/api/health"]
     }
 
 if __name__ == "__main__":

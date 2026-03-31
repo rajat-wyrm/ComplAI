@@ -1,161 +1,117 @@
-﻿"use client";
+﻿'use client';
 
-import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { useDropzone } from "react-dropzone";
-import { Upload, FileText, X } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { useToast } from "@/hooks/use-toast";
-import { uploadDocument, analyzeDocument } from "@/lib/api";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function UploadPage() {
   const router = useRouter();
-  const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const selectedFile = acceptedFiles[0];
-    if (selectedFile) {
-      setFile(selectedFile);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+      setError(null);
     }
-  }, []);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      "application/pdf": [".pdf"],
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
-      "text/plain": [".txt"],
-    },
-    maxFiles: 1,
-  });
+  };
 
   const handleUpload = async () => {
-    if (!file) return;
+    if (!file) {
+      setError('Please select a file');
+      return;
+    }
 
     setUploading(true);
-    setProgress(0);
+    setError(null);
+    setSuccess(null);
 
     try {
-      const interval = setInterval(() => {
-        setProgress((prev) => Math.min(prev + 10, 90));
-      }, 200);
+      const formData = new FormData();
+      formData.append('file', file);
 
-      const result = await uploadDocument(file);
-      clearInterval(interval);
-      setProgress(100);
-
-      await analyzeDocument(result.document_id);
-
-      toast({
-        title: "Success!",
-        description: "Document uploaded and analysis started.",
+      const response = await fetch('http://localhost:8000/api/upload', {
+        method: 'POST',
+        body: formData,
       });
 
-      setTimeout(() => {
-        router.push(`/analysis/${result.document_id}`);
-      }, 2000);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Upload failed. Please try again.",
-        variant: "destructive",
-      });
+      const result = await response.json();
+      
+      if (result.success) {
+        setSuccess(`Document uploaded successfully! Risk Score: ${result.report.risk_score}`);
+        
+        setTimeout(() => {
+          router.push(`/dashboard?docId=${result.document_id}`);
+        }, 1500);
+      } else {
+        setError(result.error || 'Upload failed');
+      }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during upload');
     } finally {
       setUploading(false);
     }
   };
 
-  const removeFile = () => {
-    setFile(null);
-    setProgress(0);
-  };
-
   return (
-    <div className="space-y-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <h1 className="text-4xl font-bold gradient-text">Upload Document</h1>
-        <p className="text-muted-foreground mt-2">
-          Upload your legal or compliance documents for AI-powered risk analysis
-        </p>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.1 }}
-      >
-        <Card className="glass-card">
-          <CardContent className="p-8">
-            {!file ? (
-              <div
-                {...getRootProps()}
-                className={`
-                  border-2 border-dashed rounded-xl p-12 text-center cursor-pointer
-                  transition-all duration-300
-                  ${isDragActive
-                    ? "border-primary bg-primary/5 scale-105"
-                    : "border-white/20 hover:border-primary/50 hover:bg-white/5"
-                  }
-                `}
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-8">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl font-bold text-white mb-8">Upload Compliance Document</h1>
+        
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 p-8">
+          <div className="space-y-6">
+            <div className="border-2 border-dashed border-purple-500/50 rounded-lg p-8 text-center">
+              <input
+                type="file"
+                onChange={handleFileChange}
+                accept=".pdf,.docx,.txt"
+                className="hidden"
+                id="file-upload"
+              />
+              <label
+                htmlFor="file-upload"
+                className="cursor-pointer inline-flex flex-col items-center"
               >
-                <input {...getInputProps()} />
-                <Upload className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-xl font-semibold mb-2">
-                  {isDragActive ? "Drop your file here" : "Drag & drop your document"}
-                </h3>
-                <p className="text-muted-foreground">or click to browse</p>
-                <p className="text-sm text-muted-foreground mt-4">
-                  Supports PDF, DOCX, TXT (Max 10MB)
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between p-4 rounded-lg bg-white/5">
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-8 w-8 text-primary" />
-                    <div>
-                      <p className="font-medium">{file.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="icon" onClick={removeFile} disabled={uploading}>
-                    <X className="h-4 w-4" />
-                  </Button>
+                <div className="text-6xl mb-4">📄</div>
+                <div className="text-white text-lg mb-2">
+                  {file ? file.name : 'Click to select or drag and drop'}
                 </div>
+                <div className="text-gray-400 text-sm">
+                  Supported formats: PDF, DOCX, TXT
+                </div>
+              </label>
+            </div>
 
-                {uploading && (
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Uploading...</span>
-                      <span>{progress}%</span>
-                    </div>
-                    <Progress value={progress} className="h-2" />
-                  </div>
-                )}
-
-                {!uploading && (
-                  <Button onClick={handleUpload} className="w-full" size="lg">
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Document
-                  </Button>
-                )}
+            {error && (
+              <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 text-red-200">
+                {error}
               </div>
             )}
-          </CardContent>
-        </Card>
-      </motion.div>
+
+            {success && (
+              <div className="bg-green-500/20 border border-green-500 rounded-lg p-4 text-green-200">
+                {success}
+              </div>
+            )}
+
+            <button
+              onClick={handleUpload}
+              disabled={!file || uploading}
+              className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium transition-all"
+            >
+              {uploading ? 'Analyzing Document...' : 'Upload & Analyze'}
+            </button>
+
+            {uploading && (
+              <div className="text-center text-gray-400">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white mb-2"></div>
+                <p>Processing document with AI...</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
