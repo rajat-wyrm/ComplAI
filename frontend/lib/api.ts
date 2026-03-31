@@ -1,28 +1,38 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+﻿const API_BASE = 'http://localhost:8000';
 
-async function safeFetch(url, options = {}) {
-  const res = await fetch(url, options);
-  const data = await res.json();
-  return data;
+export async function uploadDocument(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch(`${API_BASE}/api/upload`, { method: 'POST', body: formData });
+  return res.json();
+}
+
+export async function getDashboardData(docId?: string) {
+  const url = docId ? `${API_BASE}/api/dashboard?doc_id=${docId}` : `${API_BASE}/api/dashboard`;
+  const res = await fetch(url);
+  return res.json();
+}
+
+export async function getDocumentHistory() {
+  const res = await fetch(`${API_BASE}/api/history`);
+  return res.json();
+}
+
+export async function getDocumentDetail(documentId: string) {
+  const res = await fetch(`${API_BASE}/api/history/${documentId}`);
+  return res.json();
 }
 
 export async function getInsights() {
-  const res = await safeFetch(${API_BASE_URL}/insights);
-  return {
-    success: true,
-    data: res.data || {}
-  };
+  const res = await fetch(`${API_BASE}/api/insights`);
+  return res.json();
 }
 
-export async function uploadDocument(file) {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const res = await fetch(${API_BASE_URL}/upload, {
-    method: "POST",
-    body: formData,
+export async function sendChatMessage(documentId: string, message: string, history: any[] = []) {
+  const res = await fetch(`${API_BASE}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ document_id: documentId, message, history })
   });
-
-  return await res.json();
+  return res.json();
 }
