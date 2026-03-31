@@ -1,9 +1,8 @@
-﻿from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+﻿from fastapi import APIRouter, UploadFile, File, Depends
 from fastapi.responses import JSONResponse
 import os
 import shutil
 from datetime import datetime
-from bson import ObjectId
 import logging
 
 from app.services.document_processor import DocumentProcessor
@@ -36,60 +35,59 @@ async def upload_and_analyze(
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # Broadcast processing start
+        # WebSocket: processing started
         await manager.broadcast({"type": "upload_started", "filename": file.filename})
 
+        # Extract text and metadata
         doc_analysis = document_processor.analyze_document(file_path)
         company_name = doc_analysis['company_name']
         full_text = doc_analysis['full_text']
 
-        await manager.broadcast({"type": "processing", "stage": "text_extraction"})
+        await manager.broadcast({"type": "processing", "stage": "text_extracted"})
 
+        # Process through RAG (chunk and embed)
         chunks = rag_pipeline.process_document(full_text, {'company': company_name, 'filename': file.filename})
-        await manager.broadcast({"type": "processing", "stage": "chunking", "chunks": len(chunks)})
+        await manager.broadcast({"type": "processing", "stage": "chunked", "chunks": len(chunks)})
 
-        context = rag_pipeline.retrieve_context("compliance risks regulations requirements legal", k=5)
+        # Retrieve relevant context (optional, but can help AI)
+        context = rag_pipeline.retrieve_context("compliance risks regulations requirements", k=5)
+
         await manager.broadcast({"type": "processing", "stage": "ai_analysis"})
 
-        try:
-            report = await ai_service.analyze_document(full_text, context)
-        except Exception as ai_error:
-            logger.warning(f"AI failed, using mock: {ai_error}")
-            report = await ai_service.generate_mock_analysis(full_text, company_name)
-
+        # Get AI analysis
+        report = await ai_service.analyze_document(full_text, context)
         report['analysis_timestamp'] = datetime.utcnow().isoformat()
         report['document_name'] = file.filename
-        report['file_type'] = file.filename.split('.')[-1]
 
+        # Add metadata from document processor
+        report['company_name'] = company_name
+        report['document_metadata'] = {
+            'word_count': doc_analysis['word_count'],
+            'character_count': doc_analysis['character_count'],
+            'dates_found': doc_analysis['dates'],
+            'clauses_count': len(doc_analysis['clauses']),
+            'headings_count': len(doc_analysis['headings'])
+        }
+
+        # Save to database
         document_data = {
             'company_name': company_name,
             'filename': file.filename,
             'file_path': file_path,
             'upload_date': datetime.utcnow(),
-            'user_id': 'default_user',
+            'user_id': 'default_user',  # TODO: add authentication
             'role': 'user',
-            'document_metadata': {
-                'word_count': doc_analysis['word_count'],
-                'character_count': doc_analysis['character_count'],
-                'dates_found': doc_analysis['dates'],
-                'clauses_count': len(doc_analysis['clauses']),
-                'headings_count': len(doc_analysis['headings'])
-            },
+            'document_metadata': doc_analysis,
             'analysis_report': report,
             'chunks_count': len(chunks)
         }
-
         result = await db.documents.insert_one(document_data)
         document_id = str(result.inserted_id)
 
-        # Cache latest
-        await redis_client.setex(f"company:{company_name}:latest", 3600, document_id)
-        await redis_client.lpush(f"company:{company_name}:history", document_id)
-        await redis_client.ltrim(f"company:{company_name}:history", 0, 99)
-
+        # Clean up temp file
         os.remove(file_path)
 
-        # Broadcast completion with document data
+        # WebSocket: completion
         await manager.broadcast({
             "type": "analysis_complete",
             "document_id": document_id,

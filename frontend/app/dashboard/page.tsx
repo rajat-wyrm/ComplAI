@@ -17,7 +17,6 @@ export default function DashboardPage() {
   const [history, setHistory] = useState<any[]>([]);
   const [socket, setSocket] = useState<WebSocket | null>(null);
 
-  // Fetch dashboard data
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -35,7 +34,6 @@ export default function DashboardPage() {
     }
   }, [docId]);
 
-  // Fetch history
   const fetchHistory = useCallback(async () => {
     try {
       const res = await fetch('http://localhost:8000/api/history');
@@ -50,13 +48,13 @@ export default function DashboardPage() {
     fetchData();
     fetchHistory();
 
-    // WebSocket connection for real-time updates
+    // WebSocket connection
     const ws = new WebSocket('ws://localhost:8000/ws');
     ws.onopen = () => console.log('WebSocket connected');
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       if (msg.type === 'analysis_complete') {
-        // Refresh data to show new report
+        // New analysis done, refresh data
         fetchData();
         fetchHistory();
       }
@@ -65,7 +63,7 @@ export default function DashboardPage() {
     return () => ws.close();
   }, [fetchData, fetchHistory]);
 
-  // Memoized chart data
+  // Prepare chart data
   const riskTrend = useMemo(() => {
     return history.map(doc => ({
       name: new Date(doc.upload_date).toLocaleDateString(),
@@ -91,13 +89,13 @@ export default function DashboardPage() {
 
   const report = data?.report || data?.current_document?.analysis_report;
   const analytics = data?.analytics;
+  const currentDoc = data?.current_document;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-8">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-4xl font-bold text-white mb-8">Compliance Dashboard</h1>
 
-        {/* Real-time Notification */}
         {socket && (
           <div className="fixed bottom-4 right-4 bg-green-500/20 backdrop-blur-lg rounded-full px-4 py-2 text-green-300 text-sm">
             🟢 Live updates active
@@ -121,7 +119,7 @@ export default function DashboardPage() {
 
             <GlassCard className="p-6 mb-6">
               <h3 className="text-xl font-semibold text-white mb-3">Company Information</h3>
-              <p className="text-gray-300">Company: {report.company_name}</p>
+              <p className="text-gray-300">Company: {report.company_name || currentDoc?.company_name || 'N/A'}</p>
               <p className="text-gray-300">Document Type: {report.document_type}</p>
               <p className="text-gray-300">Document: {report.document_name}</p>
             </GlassCard>
@@ -155,14 +153,28 @@ export default function DashboardPage() {
               </GlassCard>
             )}
 
-            {report.next_actions?.length > 0 && (
-              <GlassCard className="p-6">
-                <h3 className="text-xl font-semibold text-white mb-3">Next Actions</h3>
+            {report.recommendations?.length > 0 && (
+              <GlassCard className="p-6 mb-6">
+                <h3 className="text-xl font-semibold text-white mb-3">Recommendations</h3>
                 <ul className="space-y-2">
-                  {report.next_actions.map((action, idx) => (
+                  {report.recommendations.map((rec, idx) => (
                     <li key={idx} className="flex items-start">
                       <span className="text-purple-400 mr-2">→</span>
-                      <span className="text-gray-300">{action}</span>
+                      <span className="text-gray-300">{rec}</span>
+                    </li>
+                  ))}
+                </ul>
+              </GlassCard>
+            )}
+
+            {report.missing_elements?.length > 0 && (
+              <GlassCard className="p-6">
+                <h3 className="text-xl font-semibold text-white mb-3">Missing Compliance Elements</h3>
+                <ul className="space-y-2">
+                  {report.missing_elements.map((elem, idx) => (
+                    <li key={idx} className="flex items-start">
+                      <span className="text-red-400 mr-2">⚠️</span>
+                      <span className="text-gray-300">{elem}</span>
                     </li>
                   ))}
                 </ul>
