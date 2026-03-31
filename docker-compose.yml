@@ -1,70 +1,28 @@
 ﻿version: '3.8'
 
 services:
-  mongodb:
-    image: mongo:7
-    container_name: compliance-mongodb
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-password}
-      MONGO_INITDB_DATABASE: compliance_db
-    volumes:
-      - mongodb_data:/data/db
-    networks:
-      - compliance-network
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    container_name: compliance-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - compliance-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   backend:
     build: .
-    container_name: compliance-backend
-    restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
-      - MONGODB_URL=mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-password}@mongodb:27017
-      - REDIS_URL=redis://redis:6379
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-      - SECRET_KEY=${SECRET_KEY}
-      - ENVIRONMENT=production
-      - MONGO_DB_NAME=compliance_db
+      - MONGODB_URL=
+      - REDIS_URL=
+      - DEEPSEEK_API_KEY=
+      - OPENAI_API_KEY=
+      - HUGGINGFACE_API_KEY=
     volumes:
-      - ./data:/data
-      - ./logs:/logs
+      - ./backend/uploads:/app/uploads
+      - ./backend/vectors:/app/vectors
+      - ./backend/logs:/app/logs
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
     depends_on:
-      mongodb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - compliance-network
-
-networks:
-  compliance-network:
-    driver: bridge
-
-volumes:
-  mongodb_data:
-  redis_data:
+      - backend
+    restart: unless-stopped
