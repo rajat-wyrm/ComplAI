@@ -1,185 +1,60 @@
 ﻿'use client';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { FileText, TrendingUp, Calendar, Activity } from "lucide-react";
-import { getHistory } from "@/lib/api";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { getDocumentHistory } from '@/lib/api';
+import { motion } from 'framer-motion';
 
 export default function HistoryPage() {
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
-  // =========================
-  // REAL-TIME FETCH (OPTIMIZED)
-  // =========================
   useEffect(() => {
-    load();
-
-    const interval = setInterval(load, 8000); // less aggressive = faster UX
-    return () => clearInterval(interval);
+    getDocumentHistory().then(res => {
+      if (res.success) setDocuments(res.documents);
+      setLoading(false);
+    });
   }, []);
 
-  const load = async () => {
-    try {
-      const res = await getHistory();
+  if (loading) return <LoadingSpinner />;
 
-      if (res?.documents) {
-        setDocuments(res.documents);
-      }
-    } catch (e) {
-      console.error("History fetch error:", e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // =========================
-  // NAVIGATION (FULL DATA PASS)
-  // =========================
-  const openDocument = (doc: any) => {
-    localStorage.setItem(
-      "latestAnalysis",
-      JSON.stringify({
-        document_id: doc.document_id,
-        report: {
-          risk_score: doc.risk_score,
-          compliance_score: doc.compliance_score,
-          confidence_score: doc.confidence_score,
-          summary: doc.summary,
-          issues: doc.issues || []
-        }
-      })
-    );
-
-    router.push(`/dashboard?docId=${doc.document_id}`);
-  };
-
-  // =========================
-  // STATS (SAFE)
-  // =========================
-  const total = documents.length;
-
-  const avgRisk =
-    total > 0
-      ? Math.round(
-          documents.reduce((a, d) => a + (d.risk_score || 0), 0) / total
-        )
-      : 0;
-
-  const highRisk = documents.filter((d) => (d.risk_score || 0) > 70).length;
-
-  // =========================
-  // UI
-  // =========================
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-purple-900 to-black text-white p-6 space-y-8">
-
-      {/* HEADER */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-          Document Intelligence History
+    <div className="min-h-screen bg-gradient-to-br from-[#0a0a2a] via-[#1a1a3a] to-[#2a1a4a] p-8">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-5xl font-bold mb-8 bg-gradient-to-r from-purple-400 via-pink-500 to-cyan-400 bg-clip-text text-transparent">
+          Document History
         </h1>
-        <p className="text-gray-400">
-          Real-time tracking of all analyzed documents
-        </p>
-      </motion.div>
-
-      {/* ========================= */}
-      {/* STATS */}
-      {/* ========================= */}
-      <div className="grid md:grid-cols-4 gap-6">
-
-        <Stat icon={FileText} label="Total Docs" value={total} />
-        <Stat icon={TrendingUp} label="Avg Risk" value={avgRisk + "%"} />
-        <Stat icon={Activity} label="High Risk" value={highRisk} />
-        <Stat icon={Calendar} label="System" value="Live" />
-
-      </div>
-
-      {/* ========================= */}
-      {/* LIST */}
-      {/* ========================= */}
-      <div className="space-y-3">
-
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-20 bg-white/5 animate-pulse rounded-xl" />
-            ))}
-          </div>
-        ) : documents.length === 0 ? (
-          <div className="text-center text-gray-400 mt-20">
-            No documents yet 🚀
-          </div>
-        ) : (
-          documents.map((doc, i) => (
-            <motion.div
-              key={doc.document_id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-              onClick={() => openDocument(doc)}
-              className="cursor-pointer p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex justify-between items-center transition-all"
-            >
-
-              {/* LEFT */}
-              <div>
-                <p className="font-medium">{doc.filename || "Untitled Document"}</p>
-                <p className="text-xs text-gray-400">
-                  {doc.upload_date
-                    ? new Date(doc.upload_date).toLocaleString()
-                    : "Unknown time"}
-                </p>
-              </div>
-
-              {/* RIGHT */}
-              <div className="flex items-center gap-4">
-
-                <Badge score={doc.risk_score || 0} />
-
-                <span className="text-gray-400 text-sm">
-                  {doc.compliance_score ?? "--"}%
-                </span>
-
-              </div>
-
-            </motion.div>
-          ))
-        )}
-      </div>
-
-    </div>
-  );
-}
-
-
-// =========================
-// COMPONENTS
-// =========================
-
-function Stat({ icon: Icon, label, value }: any) {
-  return (
-    <div className="p-5 bg-white/5 border border-white/10 rounded-xl flex items-center gap-4 backdrop-blur-xl">
-      <Icon className="text-purple-400" />
-      <div>
-        <p className="text-sm text-gray-400">{label}</p>
-        <p className="text-xl font-bold">{value}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {documents.map(doc => (
+            <Link key={doc.document_id} href={`/dashboard?docId=${doc.document_id}`}>
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="glass-card p-6 cursor-pointer"
+              >
+                <h3 className="text-xl font-semibold text-white mb-2">{doc.company_name}</h3>
+                <p className="text-gray-400 text-sm">{doc.filename}</p>
+                <p className="text-gray-500 text-xs">{new Date(doc.upload_date).toLocaleString()}</p>
+                <div className="mt-4 flex justify-between">
+                  <span className="text-purple-300">Risk: {doc.risk_score}</span>
+                  <span className="text-blue-300">Compliance: {doc.compliance_score}%</span>
+                </div>
+              </motion.div>
+            </Link>
+          ))}
+          {documents.length === 0 && <p className="text-gray-400 text-center col-span-full">No documents yet</p>}
+        </div>
       </div>
     </div>
   );
 }
 
-function Badge({ score }: any) {
-  const color =
-    score > 70 ? "text-red-400" :
-    score > 40 ? "text-yellow-400" :
-    "text-green-400";
-
+function LoadingSpinner() {
   return (
-    <div className={`${color} font-semibold`}>
-      {score ?? "--"}%
+    <div className="min-h-screen bg-gradient-to-br from-[#0a0a2a] via-[#1a1a3a] to-[#2a1a4a] flex items-center justify-center">
+      <div className="text-center glass-card p-8">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mb-4"></div>
+        <p className="text-white text-lg">Loading history...</p>
+      </div>
     </div>
   );
 }

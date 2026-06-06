@@ -1,208 +1,103 @@
-"""
-Chat API (PRODUCTION-GRADE - RAG + CACHE + STABLE AI)
-
-- Uses vector_store for RAG
-- Uses OpenAI via ai_service (NO DeepSeek dependency)
-- Redis caching (context + history)
-- Safe fallbacks (never breaks UI)
-- Optimized + async-safe
-"""
-
-import logging
-from datetime import datetime
-from typing import List, Dict
-
-from fastapi import APIRouter, Depends, HTTPException
+﻿from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-
-from app.services.vector_store import vector_store
-from app.services.ai_service import ai_service
+from typing import List, Dict
+from bson import ObjectId
+import logging
+from app.services.rag.pipeline import RAGPipeline
+from app.services.ai_service import AIService
 from app.core.database import get_database
 from app.core.cache import get_redis
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+rag_pipeline = RAGPipeline()
+ai_service = AIService()
 
-
-# =========================
-# REQUEST MODEL
-# =========================
 class ChatRequest(BaseModel):
     document_id: str
     message: str
     history: List[Dict[str, str]] = []
 
-
-# =========================
-# BUILD CONTEXT (RAG)
-# =========================
-def build_context(query: str, top_k: int = 5) -> str:
-    results = vector_store.search(query, top_k=top_k)
-
-    if not results:
-        return "No relevant context found."
-
-    context_chunks = [chunk for chunk, _, _ in results]
-
-    return "\n\n".join(context_chunks[:top_k])
-
-
-# =========================
-# MAIN CHAT ENDPOINT
-# =========================
-@router.post("")
+@router.post("/chat")
 async def chat_with_document(
     request: ChatRequest,
-    db=Depends(get_database),
-    redis_client=Depends(get_redis)
+    db = Depends(get_database),
+    redis_client = Depends(get_redis)
 ):
     try:
-        # =========================
-        # 1. FETCH DOCUMENT
-        # =========================
-        document = await db.documents.find_one(
-            {"document_id": request.document_id}
-        )
-
-        if not document:
+        doc = await db.documents.find_one({'_id': ObjectId(request.document_id)})
+        if not doc:
             raise HTTPException(status_code=404, detail="Document not found")
 
-        # =========================
-        # 2. CACHE CONTEXT
-        # =========================
-        cache_key = f"chat:{request.document_id}:context:{hash(request.message)}"
+        # Retrieve context using RAG
+        context = rag_pipeline.retrieve_context(request.message, k=5)
 
-        cached_context = await redis_client.get(cache_key)
+        # Build prompt
+        full_text = doc.get('analysis_report', {}).get('full_text', '') or doc.get('document_metadata', {}).get('full_text', '')
+        if not full_text:
+            full_text = "Document content not available"
+        prompt = f"""Based on the document, answer the following question.
 
-        if cached_context:
-            context = cached_context.decode() if isinstance(cached_context, bytes) else cached_context
-        else:
-            context = build_context(request.message, top_k=5)
+Document content (excerpt):
+{full_text[:2000]}
 
-            await redis_client.setex(cache_key, 1800, context)  # 30 min cache
-
-        # =========================
-        # 3. BUILD CHAT HISTORY
-        # =========================
-        chat_history = ""
-        for msg in request.history[-5:]:
-            role = msg.get("role", "user")
-            content = msg.get("content", "")
-            chat_history += f"{role}: {content}\n"
-
-        # =========================
-        # 4. PROMPT
-        # =========================
-        prompt = f"""
-You are an AI Compliance Assistant.
-
-Context:
+Relevant context from vector search:
 {context}
 
-Chat History:
-{chat_history}
+User question: {request.message}
 
-User Question:
-{request.message}
-
-Instructions:
-- Answer strictly based on context
-- Be precise and actionable
-- Highlight risks, compliance gaps, recommendations
-- If unsure, say "Not found in document"
+Provide a concise, helpful answer focusing on compliance and risk aspects.
 """
-
-        # =========================
-        # 5. AI CALL (OPENAI)
-        # =========================
+        # Use AI service to generate answer
         try:
-            response = await ai_service._call_openai(prompt)
-            answer = response.strip()
+            if ai_service.deepseek_client:
+                response = await ai_service.deepseek_client.chat.completions.create(
+                    model="deepseek-chat",
+                    messages=[
+                        {"role": "system", "content": "You are a compliance expert assistant. Answer questions based on the provided document."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=500
+                )
+                answer = response.choices[0].message.content
+            elif ai_service.openai_client:
+                response = await ai_service.openai_client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": "You are a compliance expert assistant. Answer questions based on the provided document."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=500
+                )
+                answer = response.choices[0].message.content
+            else:
+                # Simple fallback
+                answer = f"Based on the document, I found: {context[:500]}. For more detailed guidance, please consult a compliance officer."
         except Exception as e:
-            logger.warning(f"AI chat failed: {e}")
-            answer = self_fallback_answer(context)
+            logger.error(f"Chat AI failed: {e}")
+            answer = "I'm sorry, I couldn't generate a response at the moment. Please try again later."
 
-        # =========================
-        # 6. STORE CHAT HISTORY (REDIS)
-        # =========================
-        history_key = f"chat:{request.document_id}:history"
+        # Store chat history in Redis (optional)
+        await redis_client.lpush(f"chat:{request.document_id}", f"{request.message}|{answer}")
+        await redis_client.ltrim(f"chat:{request.document_id}", 0, 99)
 
-        entry = f"{datetime.utcnow().isoformat()}|{request.message}|{answer}"
-
-        await redis_client.lpush(history_key, entry)
-        await redis_client.ltrim(history_key, 0, 99)
-
-        # =========================
-        # 7. RESPONSE
-        # =========================
-        return JSONResponse(content={
-            "success": True,
-            "response": answer,
-            "timestamp": datetime.utcnow().isoformat()
-        })
-
-    except HTTPException:
-        raise
-
+        return JSONResponse(content={'success': True, 'response': answer})
     except Exception as e:
-        logger.exception(f"Chat failed: {str(e)}")
+        logger.error(f"Chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-        return JSONResponse(content={
-            "success": True,
-            "response": "AI service temporarily unavailable. Please try again.",
-            "timestamp": datetime.utcnow().isoformat()
-        })
-
-
-# =========================
-# HISTORY ENDPOINT
-# =========================
-@router.get("/history/{document_id}")
-async def get_chat_history(
-    document_id: str,
-    redis_client=Depends(get_redis)
-):
+@router.get("/chat/history/{document_id}")
+async def get_chat_history(document_id: str, redis_client = Depends(get_redis)):
     try:
-        history_key = f"chat:{document_id}:history"
-
-        history = await redis_client.lrange(history_key, 0, 49)
-
-        chat_history = []
-
-        for item in history:
-            if isinstance(item, bytes):
-                item = item.decode()
-
-            parts = item.split("|")
-
-            if len(parts) == 3:
-                chat_history.append({
-                    "timestamp": parts[0],
-                    "question": parts[1],
-                    "answer": parts[2]
-                })
-
-        return JSONResponse(content={
-            "success": True,
-            "history": chat_history
-        })
-
+        raw = await redis_client.lrange(f"chat:{document_id}", 0, 49)
+        history = []
+        for item in raw:
+            parts = item.split('|', 1)
+            if len(parts) == 2:
+                history.append({'question': parts[0], 'answer': parts[1]})
+        return JSONResponse(content={'success': True, 'history': history})
     except Exception as e:
-        logger.exception(f"Chat history failed: {str(e)}")
-
-        return JSONResponse(content={
-            "success": True,
-            "history": []
-        })
-
-
-# =========================
-# FALLBACK
-# =========================
-def self_fallback_answer(context: str) -> str:
-    return (
-        "Based on available document context:\n\n"
-        + context[:500]
-        + "\n\nRecommendation: Review highlighted clauses and ensure compliance controls are implemented."
-    )
+        raise HTTPException(status_code=500, detail=str(e))

@@ -1,7 +1,5 @@
 ﻿from typing import List, Dict
-import asyncio
-import json
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import WebSocket
 import logging
 
 logger = logging.getLogger(__name__)
@@ -30,6 +28,5 @@ class ConnectionManager:
                     await connection.send_json(message)
                 except:
                     pass
-        logger.info(f"Broadcast to user {user_id}: {message}")
 
 manager = ConnectionManager()

@@ -9,22 +9,22 @@ export async function uploadDocument(file: File) {
 
 export async function getDashboardData(docId?: string) {
   const url = docId ? `${API_BASE}/api/dashboard?doc_id=${docId}` : `${API_BASE}/api/dashboard`;
-  const res = await fetch(url);
+  const res = await fetch(url, { cache: 'no-store' });
   return res.json();
 }
 
 export async function getDocumentHistory() {
-  const res = await fetch(`${API_BASE}/api/history`);
+  const res = await fetch(`${API_BASE}/api/history`, { cache: 'no-store' });
   return res.json();
 }
+
+// Alias for compatibility
+export const getHistory = getDocumentHistory;
 
 export async function getDocumentDetail(documentId: string) {
   const res = await fetch(`${API_BASE}/api/history/${documentId}`);
   return res.json();
 }
-
-// Alias for history (for existing pages)
-export const getHistory = getDocumentHistory;
 
 export async function sendChatMessage(documentId: string, message: string, history: any[] = []) {
   const res = await fetch(`${API_BASE}/api/chat`, {
@@ -32,6 +32,11 @@ export async function sendChatMessage(documentId: string, message: string, histo
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ document_id: documentId, message, history })
   });
+  return res.json();
+}
+
+export async function getChatHistory(documentId: string) {
+  const res = await fetch(`${API_BASE}/api/chat/history/${documentId}`);
   return res.json();
 }
 
