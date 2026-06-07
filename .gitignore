@@ -1,25 +1,31 @@
-﻿# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-.venv/
+﻿# Environment secrets
 .env
 .env.local
 .env.*.local
+backend\.env
+frontend\.env.local
 
-# Uploads
-uploads/
-vectors/
-logs/
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+backend/venv/
 
-# Frontend
-frontend/.next/
+# Node modules
+node_modules/
 frontend/node_modules/
-frontend/.env.local
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+*.egg
+.next/
+out/
 
 # IDE
 .vscode/
@@ -27,22 +33,18 @@ frontend/.env.local
 *.swp
 *.swo
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Secrets
-*.key
-*.pem
-# Environment variables
-.env
-.env.local
-.env.*.local
-.env.docker
-
-# Backups
-*.bak
+# Logs and temporary files
+logs/
+*.log
+*.sqlite3
+*.db
+uploads/
+vectors/
+*.faiss
+*.pkl
 
 # Test files
-test_upload.py
-test_connections.py
+test_*.py
+*.bak
+.DS_Store
+Thumbs.db

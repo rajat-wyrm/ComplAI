@@ -12,10 +12,12 @@ export const metadata: Metadata = {
   description: "AI compliance system",
 };
 
+import { AuthProvider } from '@/lib/auth';\n\nimport { AuthProvider } from '@/lib/auth';
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className="dark">
-      <body className={inter.className}>
+      <body className={inter.className}><AuthProvider><AuthProvider>
         <div className="flex h-screen">
 
           <Sidebar />
@@ -29,7 +31,8 @@ export default function RootLayout({ children }) {
           </div>
 
         </div>
-      </body>
+      </AuthProvider></AuthProvider></body>
     </html>
   );
 }
+
