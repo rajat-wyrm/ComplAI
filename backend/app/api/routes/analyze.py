@@ -9,6 +9,7 @@ import logging
 from app.services.document_processor import DocumentProcessor
 from app.services.rag.pipeline import RAGPipeline
 from app.services.ai_service import AIService
+from app.services.s3 import s3_service, MAX_FILE_SIZE
 from app.core.database import get_database
 from app.core.cache import cache_get, cache_set, get_cache_stats
 from app.core.websocket import manager
@@ -27,12 +28,14 @@ async def upload_and_analyze(
 ):
     try:
         logger.info(f"Received file: {file.filename}")
-        os.makedirs("uploads", exist_ok=True)
+        # S3: no local directory needed
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_filename = f"{timestamp}_{file.filename.replace(' ', '_')}"
-        file_path = f"uploads/{safe_filename}"
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        file_content = await file.read()
+        # Validate file
+            valid, msg = await s3_service.validate_file(file_content, file.filename)
+    if not valid:
+        raise HTTPException(status_code=400, detail=msg)
 
         await manager.broadcast({"type": "upload_started", "filename": file.filename})
 
@@ -81,7 +84,7 @@ async def upload_and_analyze(
         await redis_client.lpush(f"company:{company_name}:history", doc_id)
         await redis_client.ltrim(f"company:{company_name}:history", 0, 99)
 
-        os.remove(file_path)
+        # S3: file already stored in cloud, no local cleanup needed
 
         await manager.broadcast({
             "type": "analysis_complete",
