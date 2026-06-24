@@ -8,6 +8,14 @@
 *.egg-info
 dist
 build
+.next
+node_modules
+backend/venv
+frontend/node_modules
+frontend/.next
+frontend/.vercel
+uploads
+logs
 .env
 .env.*
 !.env.example
