@@ -39,8 +39,8 @@ export default function UploadPage() {
       } else {
         setError(result.error || 'Upload failed');
       }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during upload');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred during upload');
     } finally {
       setUploading(false);
     }

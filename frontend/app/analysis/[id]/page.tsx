@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { 
@@ -15,17 +15,17 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { GlassCard } from "@/components/ui/glass-card";
 import { getInsights, analyzeDocument } from "@/lib/api";
-import type { Analysis } from "@/types";
+import type { InsightResponse } from "@/lib/api";
 
 export default function AnalysisPage() {
   const params = useParams();
   const router = useRouter();
   const documentId = params.id as string;
-  const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [analysis, setAnalysis] = useState<InsightResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchAnalysis = async () => {
+  const fetchAnalysis = useCallback(async () => {
     try {
       const data = await getInsights(documentId);
       setAnalysis(data);
@@ -35,7 +35,7 @@ export default function AnalysisPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [documentId]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -47,7 +47,7 @@ export default function AnalysisPage() {
 
   useEffect(() => {
     fetchAnalysis();
-  }, [documentId]);
+  }, [documentId, fetchAnalysis]);
 
   if (loading) {
     return (

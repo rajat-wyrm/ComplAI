@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo, Suspense, lazy } from 'react
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { DashboardResponse, HistoryDocument, ReportIssue } from '@/lib/api';
 
 // Lazy load charts
 const LineChart = lazy(() => import('recharts').then(mod => ({ default: mod.LineChart })));
@@ -23,10 +24,10 @@ const Bar = lazy(() => import('recharts').then(mod => ({ default: mod.Bar })));
 export default function DashboardPage() {
   const searchParams = useSearchParams();
   const docId = searchParams.get('docId');
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState<any[]>([]);
+  const [history, setHistory] = useState<HistoryDocument[]>([]);
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [realtimeMessage, setRealtimeMessage] = useState<string | null>(null);
 
@@ -40,8 +41,8 @@ export default function DashboardPage() {
       const result = await res.json();
       setData(result);
       setError(null);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
@@ -102,6 +103,9 @@ export default function DashboardPage() {
   const report = data?.report || data?.current_document?.analysis_report;
   const currentDoc = data?.current_document;
   const analytics = data?.analytics;
+  const issues = report?.issues ?? [];
+  const recommendations = report?.recommendations ?? report?.next_actions ?? [];
+  const missingElements = report?.missing_elements ?? [];
 
   const getDeadline = (risk: number) => {
     if (risk > 70) return 'Immediate (within 7 days)';
@@ -171,11 +175,11 @@ export default function DashboardPage() {
               </GlassCard>
             )}
 
-            {report.issues?.length > 0 && (
+            {issues.length > 0 && (
               <GlassCard className="p-6 mb-6">
                 <h3 className="text-xl font-semibold text-white mb-3">Issues & Risks</h3>
                 <div className="space-y-4">
-                  {report.issues.map((issue: any, idx: number) => (
+                  {issues.map((issue: ReportIssue, idx: number) => (
                     <div key={idx} className="border-l-4 border-red-500 pl-4">
                       <div className="flex justify-between items-start mb-2">
                         <h4 className="text-lg font-medium text-white">{issue.title}</h4>
@@ -195,11 +199,11 @@ export default function DashboardPage() {
               </GlassCard>
             )}
 
-            {(report.recommendations?.length > 0 || report.next_actions?.length > 0) && (
+            {recommendations.length > 0 && (
               <GlassCard className="p-6 mb-6">
                 <h3 className="text-xl font-semibold text-white mb-3">AI Recommendations</h3>
                 <ul className="space-y-2">
-                  {(report.recommendations || report.next_actions).map((rec: string, idx: number) => (
+                  {recommendations.map((rec: string, idx: number) => (
                     <li key={idx} className="flex items-start">
                       <span className="text-purple-400 mr-2">→</span>
                       <span className="text-gray-200">{rec}</span>
@@ -209,11 +213,11 @@ export default function DashboardPage() {
               </GlassCard>
             )}
 
-            {report.missing_elements?.length > 0 && (
+            {missingElements.length > 0 && (
               <GlassCard className="p-6">
                 <h3 className="text-xl font-semibold text-white mb-3">Missing Compliance Elements</h3>
                 <ul className="space-y-2">
-                  {report.missing_elements.map((elem: string, idx: number) => (
+                  {missingElements.map((elem: string, idx: number) => (
                     <li key={idx} className="flex items-start">
                       <span className="text-red-400 mr-2">⚠️</span>
                       <span className="text-gray-200">{elem}</span>

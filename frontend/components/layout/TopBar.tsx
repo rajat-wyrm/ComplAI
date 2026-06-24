@@ -4,11 +4,8 @@ import { motion } from "framer-motion";
 import { Bell, Search, Settings, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
 
 export function TopBar() {
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-
   return (
     <motion.div
       initial={{ y: -20, opacity: 0 }}

@@ -1,13 +1,15 @@
-﻿version: '3.8'
-
-services:
+﻿services:
   backend:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
     ports:
       - "8000:8000"
     environment:
-      - MONGODB_URL=
-      - REDIS_URL=
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/aicompliance
+      - SECRET_KEY=change-me-in-production
+      - MONGODB_URL=mongodb://mongodb:27017/aicompliance
+      - REDIS_URL=redis://redis:6379/0
       - DEEPSEEK_API_KEY=
       - OPENAI_API_KEY=
       - HUGGINGFACE_API_KEY=
@@ -15,6 +17,35 @@ services:
       - ./backend/uploads:/app/uploads
       - ./backend/vectors:/app/vectors
       - ./backend/logs:/app/logs
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=aicompliance
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
     restart: unless-stopped
 
   frontend:
@@ -26,3 +57,7 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+
+volumes:
+  postgres_data:
+  mongodb_data:

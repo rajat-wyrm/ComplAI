@@ -10,7 +10,7 @@ export function PreloadRoutes() {
     router.prefetch('/dashboard');
     router.prefetch('/upload');
     router.prefetch('/history');
-  }, []);
+  }, [router]);
 
   return null;
 }

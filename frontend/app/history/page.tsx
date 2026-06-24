@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getDocumentHistory } from '@/lib/api';
+import { getDocumentHistory, HistoryDocument } from '@/lib/api';
 import { motion } from 'framer-motion';
 
 export default function HistoryPage() {
-  const [documents, setDocuments] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<HistoryDocument[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

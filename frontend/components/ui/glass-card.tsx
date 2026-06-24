@@ -1,10 +1,11 @@
 ﻿"use client";
 
 import { motion } from "framer-motion";
+import type { HTMLMotionProps } from "framer-motion";
 import { cn } from "@/lib/utils";
 import React from "react";
 
-interface GlassCardProps extends React.HTMLAttributes<HTMLDivElement> {
+interface GlassCardProps extends HTMLMotionProps<"div"> {
   glow?: boolean;
   animated?: boolean;
   gradient?: boolean;

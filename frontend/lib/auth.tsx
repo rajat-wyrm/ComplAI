@@ -1,4 +1,6 @@
-﻿import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+'use client';
+
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface User {
@@ -26,25 +28,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUser = async () => {
     const token = localStorage.getItem('access_token');
-    if (!token) { setLoading(false); return; }
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch('http://localhost:8000/api/auth/me', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) setUser(await res.json());
-      else localStorage.removeItem('access_token');
-    } catch { /* ignore */ }
+      if (res.ok) {
+        setUser(await res.json());
+      } else {
+        localStorage.removeItem('access_token');
+      }
+    } catch {
+      // ignore
+    }
     setLoading(false);
   };
 
-  useEffect(() => { fetchUser(); }, []);
+  useEffect(() => {
+    fetchUser();
+  }, []);
 
   const login = async (email: string, password: string) => {
     const res = await fetch('http://localhost:8000/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
-      credentials: 'include', // for refresh_token cookie
+      credentials: 'include',
     });
     if (!res.ok) throw new Error('Login failed');
     const data = await res.json();
@@ -57,14 +69,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const res = await fetch('http://localhost:8000/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, full_name })
+      body: JSON.stringify({ email, password, full_name }),
     });
     if (!res.ok) throw new Error('Registration failed');
     await login(email, password);
   };
 
   const logout = async () => {
-    await fetch('http://localhost:8000/api/auth/logout', { method: 'POST', credentials: 'include' });
+    await fetch('http://localhost:8000/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    });
     localStorage.removeItem('access_token');
     setUser(null);
     router.push('/login');

@@ -1,2 +1,2 @@
-﻿export { default as GlassCard } from './GlassCard';
-export { default as Button } from './Button';
+﻿export { GlassCard } from './glass-card';
+export { Button } from './button';

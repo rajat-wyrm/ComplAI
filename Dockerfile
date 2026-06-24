@@ -65,4 +65,4 @@ RUN mkdir -p backend/uploads backend/vectors backend/logs
 # =========================
 # START BOTH SERVICES
 # =========================
-CMD sh -c "uvicorn backend.app.main:app --host 0.0.0.0 --port 8080 & cd frontend && npm start"
+CMD sh -c "uvicorn backend.main:app --host 0.0.0.0 --port 8080 & cd frontend && npm start"

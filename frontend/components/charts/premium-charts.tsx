@@ -1,13 +1,41 @@
 ﻿'use client';
 
-import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
+import * as Recharts from "recharts";
 import { GlassCard } from "@/components/ui/glass-card";
 
-// =========================
-// OPTIMIZED IMPORTS
-// =========================
-const Recharts = dynamic(() => import("recharts"), { ssr: false });
+interface ChartContainerProps {
+  title: string;
+  children: React.ReactNode;
+  subtitle?: string;
+}
+
+interface RiskTrendPoint {
+  date: string;
+  risk_score: number;
+}
+
+interface ComplianceCategory {
+  category: string;
+  score: number;
+}
+
+interface RiskDistributionPoint {
+  name: string;
+  value: number;
+}
+
+interface HeatmapPoint {
+  category: string;
+  risk: number;
+  impact: number;
+}
+
+interface BarProps {
+  label: string;
+  value: number;
+  color: "purple" | "red" | "green" | "blue" | "yellow";
+}
 
 // =========================
 // STYLES
@@ -29,7 +57,7 @@ const tooltipStyle = {
 // =========================
 // CONTAINER
 // =========================
-export function ChartContainer({ title, children, subtitle }: any) {
+export function ChartContainer({ title, children, subtitle }: ChartContainerProps) {
   return (
     <GlassCard className="p-6 hover:scale-[1.01] transition" premium>
       <div className="mb-4">
@@ -44,7 +72,7 @@ export function ChartContainer({ title, children, subtitle }: any) {
 // =========================
 // RISK TREND (REAL-TIME READY)
 // =========================
-export function RiskTrendChart({ data }: any) {
+export function RiskTrendChart({ data }: { data: RiskTrendPoint[] }) {
   if (!data || data.length === 0) return null;
 
   return (
@@ -87,7 +115,7 @@ export function RiskTrendChart({ data }: any) {
 // =========================
 // COMPLIANCE BAR (SMART COLORS)
 // =========================
-export function ComplianceBarChart({ data }: any) {
+export function ComplianceBarChart({ data }: { data: ComplianceCategory[] }) {
   return (
     <ChartContainer title="Compliance Categories">
       <Recharts.ResponsiveContainer width="100%" height="100%">
@@ -98,7 +126,7 @@ export function ComplianceBarChart({ data }: any) {
           <Recharts.Tooltip contentStyle={tooltipStyle} />
 
           <Recharts.Bar dataKey="score" radius={[0, 8, 8, 0]}>
-            {data.map((entry: any, i: number) => (
+            {data.map((entry: ComplianceCategory, i: number) => (
               <Recharts.Cell
                 key={i}
                 fill={
@@ -120,7 +148,7 @@ export function ComplianceBarChart({ data }: any) {
 // =========================
 // RISK DISTRIBUTION (DONUT)
 // =========================
-export function RiskDistribution({ data }: any) {
+export function RiskDistribution({ data }: { data: RiskDistributionPoint[] }) {
   return (
     <ChartContainer title="Risk Distribution">
       <Recharts.ResponsiveContainer width="100%" height="100%">
@@ -132,7 +160,7 @@ export function RiskDistribution({ data }: any) {
             paddingAngle={4}
             dataKey="value"
           >
-            {data.map((_: any, i: number) => (
+            {data.map((_, i: number) => (
               <Recharts.Cell
                 key={i}
                 fill={["#22c55e", "#eab308", "#ef4444"][i]}
@@ -150,12 +178,12 @@ export function RiskDistribution({ data }: any) {
 // =========================
 // HEATMAP (AI VISUAL)
 // =========================
-export function RiskHeatmap({ data }: any) {
+export function RiskHeatmap({ data }: { data: HeatmapPoint[] }) {
   return (
     <ChartContainer title="AI Risk Heatmap">
       <div className="grid grid-cols-2 gap-3">
 
-        {data.map((item: any, i: number) => (
+        {data.map((item: HeatmapPoint, i: number) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, scale: 0.9 }}
@@ -180,7 +208,7 @@ export function RiskHeatmap({ data }: any) {
 // =========================
 // SMALL BAR COMPONENT
 // =========================
-function Bar({ label, value, color }: any) {
+function Bar({ label, value, color }: BarProps) {
   return (
     <div className="mt-2">
       <p className="text-[10px] text-white/40">{label}</p>

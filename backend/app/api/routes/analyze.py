@@ -33,9 +33,9 @@ async def upload_and_analyze(
         safe_filename = f"{timestamp}_{file.filename.replace(' ', '_')}"
         file_content = await file.read()
         # Validate file
-            valid, msg = await s3_service.validate_file(file_content, file.filename)
-    if not valid:
-        raise HTTPException(status_code=400, detail=msg)
+        valid, msg = await s3_service.validate_file(file_content, file.filename)
+        if not valid:
+            raise HTTPException(status_code=400, detail=msg)
 
         await manager.broadcast({"type": "upload_started", "filename": file.filename})
 

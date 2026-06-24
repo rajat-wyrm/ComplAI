@@ -2,11 +2,11 @@
 
 import { useEffect } from "react";
 
-export function useRealtime(docId: string, onUpdate: (data: any) => void) {
+export function useRealtime(docId: string, onUpdate: (data: unknown) => void) {
   useEffect(() => {
     if (!docId) return;
 
-    const ws = new WebSocket(ws://localhost:8000/ws/);
+    const ws = new WebSocket("ws://localhost:8000/ws/");
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -14,5 +14,5 @@ export function useRealtime(docId: string, onUpdate: (data: any) => void) {
     };
 
     return () => ws.close();
-  }, [docId]);
+  }, [docId, onUpdate]);
 }

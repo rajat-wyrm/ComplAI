@@ -2,20 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { sendChatMessage, getChatHistory } from '@/lib/api';
+import { sendChatMessage, getChatHistory, ChatMessage } from '@/lib/api';
+
+interface HistoryItem {
+  question: string;
+  answer: string;
+}
 
 export default function ChatPage() {
   const searchParams = useSearchParams();
   const docId = searchParams.get('docId');
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<Array<{role: string, content: string}>>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (docId) {
       getChatHistory(docId).then(res => {
         if (res.success) {
-          const history = res.history.map((item: any) => [
+          const history = (res.history as HistoryItem[]).map((item) => [
             { role: 'user', content: item.question },
             { role: 'assistant', content: item.answer }
           ]).flat();
@@ -37,7 +42,7 @@ export default function ChatPage() {
       } else {
         setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, an error occurred.' }]);
       }
-    } catch (err) {
+    } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, an error occurred.' }]);
     } finally {
       setLoading(false);
